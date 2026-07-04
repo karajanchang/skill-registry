@@ -1,0 +1,51 @@
+name: code-review
+version: 1.0.0
+publisher: human:david
+description: Review a diff against its plan/spec and report severity-ranked findings — the qa role IS the reviewer
+category: workflow
+provenance: human
+content:
+  abstract: |
+    Act as the reviewer, not the requester: given a diff (or commit range) and
+    the plan/spec it's supposed to satisfy, evaluate the work product in
+    isolation and report ranked findings back over the channel. Review early,
+    review often — after each task, after a major feature, before a merge.
+  procedure:
+    steps:
+    - description: 'Gather exactly the context needed to evaluate the work in isolation: the base/head commit SHAs (or diff), a one-line description of what was built, and the plan or spec section it''s meant to satisfy. Do not pull in the requester''s session history or chat — evaluate the artifact on its own.'
+      on_failure: abort
+      needs_approval: false
+    - description: Read the diff between base and head in full. For a fleet review request delivered over `channel/delegate`, treat the delegated message's SHAs/description/plan reference as the entire brief.
+      on_failure: abort
+      needs_approval: false
+    - description: 'Check correctness first: does the diff actually implement what the plan/spec section asked for? Note any requirement in the spec with no corresponding change.'
+      on_failure: abort
+      needs_approval: false
+    - description: 'Check for regressions and missed edge cases: run or read the affected tests, verify error handling exists for the failure modes the spec implies, and confirm the change doesn''t silently break an adjacent feature.'
+      on_failure: abort
+      needs_approval: false
+    - description: 'Rank every finding by severity — Critical (breaks correctness/security), Important (should fix before proceeding), Minor (note for later, non-blocking) — one line each: what''s wrong, where, why it matters.'
+      on_failure: abort
+      needs_approval: false
+    - description: Also flag reuse/simplification opportunities and YAGNI violations (unused 'professional' additions) as a separate, lower-priority note — this is a quality signal, not a blocking finding, unless it hides a real bug.
+      on_failure: abort
+      needs_approval: false
+    - description: Report findings back to the requester (or the fleet channel) as a structured list, most severe first, with an overall assessment (ready to proceed / fix Critical first / needs another pass). Never soften or omit a Critical finding to be agreeable.
+      on_failure: abort
+      needs_approval: false
+    - description: If asked to review again after fixes, re-check specifically that the previously Critical/Important findings were addressed before signing off.
+      on_failure: abort
+      needs_approval: false
+tags:
+- qa
+- code-review
+- workflow
+- superpowers-derived
+triggers:
+- type: keyword
+  pattern: code-review
+- type: command
+  pattern: /code-review
+priority: normal
+updated_at: 1970-01-01T00:00:00Z
+publisher_signature: '{"payloadType":"application/vnd.mur.skill+yaml","payload":"bmFtZTogY29kZS1yZXZpZXcKdmVyc2lvbjogMS4wLjAKcHVibGlzaGVyOiBodW1hbjpkYXZpZApkZXNjcmlwdGlvbjogUmV2aWV3IGEgZGlmZiBhZ2FpbnN0IGl0cyBwbGFuL3NwZWMgYW5kIHJlcG9ydCBzZXZlcml0eS1yYW5rZWQgZmluZGluZ3Mg4oCUIHRoZSBxYSByb2xlIElTIHRoZSByZXZpZXdlcgpjYXRlZ29yeTogd29ya2Zsb3cKcHJvdmVuYW5jZTogaHVtYW4KY29udGVudDoKICBhYnN0cmFjdDogfAogICAgQWN0IGFzIHRoZSByZXZpZXdlciwgbm90IHRoZSByZXF1ZXN0ZXI6IGdpdmVuIGEgZGlmZiAob3IgY29tbWl0IHJhbmdlKSBhbmQKICAgIHRoZSBwbGFuL3NwZWMgaXQncyBzdXBwb3NlZCB0byBzYXRpc2Z5LCBldmFsdWF0ZSB0aGUgd29yayBwcm9kdWN0IGluCiAgICBpc29sYXRpb24gYW5kIHJlcG9ydCByYW5rZWQgZmluZGluZ3MgYmFjayBvdmVyIHRoZSBjaGFubmVsLiBSZXZpZXcgZWFybHksCiAgICByZXZpZXcgb2Z0ZW4g4oCUIGFmdGVyIGVhY2ggdGFzaywgYWZ0ZXIgYSBtYWpvciBmZWF0dXJlLCBiZWZvcmUgYSBtZXJnZS4KICBwcm9jZWR1cmU6CiAgICBzdGVwczoKICAgIC0gZGVzY3JpcHRpb246ICdHYXRoZXIgZXhhY3RseSB0aGUgY29udGV4dCBuZWVkZWQgdG8gZXZhbHVhdGUgdGhlIHdvcmsgaW4gaXNvbGF0aW9uOiB0aGUgYmFzZS9oZWFkIGNvbW1pdCBTSEFzIChvciBkaWZmKSwgYSBvbmUtbGluZSBkZXNjcmlwdGlvbiBvZiB3aGF0IHdhcyBidWlsdCwgYW5kIHRoZSBwbGFuIG9yIHNwZWMgc2VjdGlvbiBpdCcncyBtZWFudCB0byBzYXRpc2Z5LiBEbyBub3QgcHVsbCBpbiB0aGUgcmVxdWVzdGVyJydzIHNlc3Npb24gaGlzdG9yeSBvciBjaGF0IOKAlCBldmFsdWF0ZSB0aGUgYXJ0aWZhY3Qgb24gaXRzIG93bi4nCiAgICAgIG9uX2ZhaWx1cmU6IGFib3J0CiAgICAgIG5lZWRzX2FwcHJvdmFsOiBmYWxzZQogICAgLSBkZXNjcmlwdGlvbjogUmVhZCB0aGUgZGlmZiBiZXR3ZWVuIGJhc2UgYW5kIGhlYWQgaW4gZnVsbC4gRm9yIGEgZmxlZXQgcmV2aWV3IHJlcXVlc3QgZGVsaXZlcmVkIG92ZXIgYGNoYW5uZWwvZGVsZWdhdGVgLCB0cmVhdCB0aGUgZGVsZWdhdGVkIG1lc3NhZ2UncyBTSEFzL2Rlc2NyaXB0aW9uL3BsYW4gcmVmZXJlbmNlIGFzIHRoZSBlbnRpcmUgYnJpZWYuCiAgICAgIG9uX2ZhaWx1cmU6IGFib3J0CiAgICAgIG5lZWRzX2FwcHJvdmFsOiBmYWxzZQogICAgLSBkZXNjcmlwdGlvbjogJ0NoZWNrIGNvcnJlY3RuZXNzIGZpcnN0OiBkb2VzIHRoZSBkaWZmIGFjdHVhbGx5IGltcGxlbWVudCB3aGF0IHRoZSBwbGFuL3NwZWMgc2VjdGlvbiBhc2tlZCBmb3I/IE5vdGUgYW55IHJlcXVpcmVtZW50IGluIHRoZSBzcGVjIHdpdGggbm8gY29ycmVzcG9uZGluZyBjaGFuZ2UuJwogICAgICBvbl9mYWlsdXJlOiBhYm9ydAogICAgICBuZWVkc19hcHByb3ZhbDogZmFsc2UKICAgIC0gZGVzY3JpcHRpb246ICdDaGVjayBmb3IgcmVncmVzc2lvbnMgYW5kIG1pc3NlZCBlZGdlIGNhc2VzOiBydW4gb3IgcmVhZCB0aGUgYWZmZWN0ZWQgdGVzdHMsIHZlcmlmeSBlcnJvciBoYW5kbGluZyBleGlzdHMgZm9yIHRoZSBmYWlsdXJlIG1vZGVzIHRoZSBzcGVjIGltcGxpZXMsIGFuZCBjb25maXJtIHRoZSBjaGFuZ2UgZG9lc24nJ3Qgc2lsZW50bHkgYnJlYWsgYW4gYWRqYWNlbnQgZmVhdHVyZS4nCiAgICAgIG9uX2ZhaWx1cmU6IGFib3J0CiAgICAgIG5lZWRzX2FwcHJvdmFsOiBmYWxzZQogICAgLSBkZXNjcmlwdGlvbjogJ1JhbmsgZXZlcnkgZmluZGluZyBieSBzZXZlcml0eSDigJQgQ3JpdGljYWwgKGJyZWFrcyBjb3JyZWN0bmVzcy9zZWN1cml0eSksIEltcG9ydGFudCAoc2hvdWxkIGZpeCBiZWZvcmUgcHJvY2VlZGluZyksIE1pbm9yIChub3RlIGZvciBsYXRlciwgbm9uLWJsb2NraW5nKSDigJQgb25lIGxpbmUgZWFjaDogd2hhdCcncyB3cm9uZywgd2hlcmUsIHdoeSBpdCBtYXR0ZXJzLicKICAgICAgb25fZmFpbHVyZTogYWJvcnQKICAgICAgbmVlZHNfYXBwcm92YWw6IGZhbHNlCiAgICAtIGRlc2NyaXB0aW9uOiBBbHNvIGZsYWcgcmV1c2Uvc2ltcGxpZmljYXRpb24gb3Bwb3J0dW5pdGllcyBhbmQgWUFHTkkgdmlvbGF0aW9ucyAodW51c2VkICdwcm9mZXNzaW9uYWwnIGFkZGl0aW9ucykgYXMgYSBzZXBhcmF0ZSwgbG93ZXItcHJpb3JpdHkgbm90ZSDigJQgdGhpcyBpcyBhIHF1YWxpdHkgc2lnbmFsLCBub3QgYSBibG9ja2luZyBmaW5kaW5nLCB1bmxlc3MgaXQgaGlkZXMgYSByZWFsIGJ1Zy4KICAgICAgb25fZmFpbHVyZTogYWJvcnQKICAgICAgbmVlZHNfYXBwcm92YWw6IGZhbHNlCiAgICAtIGRlc2NyaXB0aW9uOiBSZXBvcnQgZmluZGluZ3MgYmFjayB0byB0aGUgcmVxdWVzdGVyIChvciB0aGUgZmxlZXQgY2hhbm5lbCkgYXMgYSBzdHJ1Y3R1cmVkIGxpc3QsIG1vc3Qgc2V2ZXJlIGZpcnN0LCB3aXRoIGFuIG92ZXJhbGwgYXNzZXNzbWVudCAocmVhZHkgdG8gcHJvY2VlZCAvIGZpeCBDcml0aWNhbCBmaXJzdCAvIG5lZWRzIGFub3RoZXIgcGFzcykuIE5ldmVyIHNvZnRlbiBvciBvbWl0IGEgQ3JpdGljYWwgZmluZGluZyB0byBiZSBhZ3JlZWFibGUuCiAgICAgIG9uX2ZhaWx1cmU6IGFib3J0CiAgICAgIG5lZWRzX2FwcHJvdmFsOiBmYWxzZQogICAgLSBkZXNjcmlwdGlvbjogSWYgYXNrZWQgdG8gcmV2aWV3IGFnYWluIGFmdGVyIGZpeGVzLCByZS1jaGVjayBzcGVjaWZpY2FsbHkgdGhhdCB0aGUgcHJldmlvdXNseSBDcml0aWNhbC9JbXBvcnRhbnQgZmluZGluZ3Mgd2VyZSBhZGRyZXNzZWQgYmVmb3JlIHNpZ25pbmcgb2ZmLgogICAgICBvbl9mYWlsdXJlOiBhYm9ydAogICAgICBuZWVkc19hcHByb3ZhbDogZmFsc2UKdGFnczoKLSBxYQotIGNvZGUtcmV2aWV3Ci0gd29ya2Zsb3cKLSBzdXBlcnBvd2Vycy1kZXJpdmVkCnRyaWdnZXJzOgotIHR5cGU6IGtleXdvcmQKICBwYXR0ZXJuOiBjb2RlLXJldmlldwotIHR5cGU6IGNvbW1hbmQKICBwYXR0ZXJuOiAvY29kZS1yZXZpZXcKcHJpb3JpdHk6IG5vcm1hbAp1cGRhdGVkX2F0OiAxOTcwLTAxLTAxVDAwOjAwOjAwWgo=","signatures":[{"keyid":"ed25519-b04dc65a","publicKey":"AQBixYbE218h05AaRV9cPPWbhvlAODfw6U2PXR8huTo=","sig":"WhoNthoaWqGL3u2K5Ftp2lGUmhxZTb7dWQ0SyXB4gNaWadN2UOwIxhMX78dziGrQ4QQmTnjBX8M07tCx9NNUCA=="}]}'
