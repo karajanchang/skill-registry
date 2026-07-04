@@ -1,0 +1,9 @@
+# Vetted remote MCP servers. Add via PR; each entry must be a Streamable HTTP
+# server reachable with `mur agent mcp registry-add <url>`.
+schema_version: 1
+servers:
+  - name: context7
+    url: https://mcp.context7.com/mcp
+    description: Up-to-date library and framework documentation lookup.
+    auth: none
+    tags: [docs, development]
