@@ -1,0 +1,47 @@
+name: executing-plans
+version: 1.0.0
+publisher: human:david
+description: Load a written plan, execute its tasks sequentially with checkpoints, stop when blocked
+category: workflow
+provenance: human
+content:
+  abstract: |
+    Batch/checkpoint execution of an already-written plan file: load it, review
+    critically, run each task's steps in order, verify as specified, and stop
+    to ask rather than guess when blocked. No sub-agent fan-out — sequential.
+  procedure:
+    steps:
+    - description: Read the plan file. If no plan file exists yet, the pm role's writing-plans skill produces one first — do not improvise a plan here.
+      on_failure: abort
+      needs_approval: false
+    - description: 'Review the plan critically: identify gaps, unclear instructions, or concerns. If any exist, raise them with the human partner or the fleet router before starting; if none, track each task as a checklist item.'
+      on_failure: abort
+      needs_approval: false
+    - description: 'For each task in order: mark it in-progress (in the checklist you''re tracking, or by reporting status into the channel), follow each bite-sized step exactly, run the verifications the plan specifies, then mark it complete.'
+      on_failure: abort
+      needs_approval: false
+    - description: 'STOP immediately and ask for clarification (never guess) on: a missing dependency, an unclear instruction, a verification that fails repeatedly, or a plan with a critical gap that blocks starting.'
+      on_failure: abort
+      needs_approval: false
+    - description: If the plan changes mid-execution (partner feedback) or the approach needs fundamental rethinking, return to the load-and-review step rather than forcing through.
+      on_failure: abort
+      needs_approval: false
+    - description: After all tasks are complete and verified, hand off to the repo role's finishing-a-development-branch skill to decide how to integrate the work (merge / PR / keep / discard).
+      on_failure: abort
+      needs_approval: false
+    - description: Never start implementation directly on main/master without explicit consent; verify the working tree is on a feature branch or isolated worktree first (see the using-git-worktrees skill).
+      on_failure: abort
+      needs_approval: false
+tags:
+- coder
+- execution
+- workflow
+- superpowers-derived
+triggers:
+- type: keyword
+  pattern: executing-plans
+- type: keyword
+  pattern: execute the plan
+priority: normal
+updated_at: 1970-01-01T00:00:00Z
+publisher_signature: '{"payloadType":"application/vnd.mur.skill+yaml","payload":"bmFtZTogZXhlY3V0aW5nLXBsYW5zCnZlcnNpb246IDEuMC4wCnB1Ymxpc2hlcjogaHVtYW46ZGF2aWQKZGVzY3JpcHRpb246IExvYWQgYSB3cml0dGVuIHBsYW4sIGV4ZWN1dGUgaXRzIHRhc2tzIHNlcXVlbnRpYWxseSB3aXRoIGNoZWNrcG9pbnRzLCBzdG9wIHdoZW4gYmxvY2tlZApjYXRlZ29yeTogd29ya2Zsb3cKcHJvdmVuYW5jZTogaHVtYW4KY29udGVudDoKICBhYnN0cmFjdDogfAogICAgQmF0Y2gvY2hlY2twb2ludCBleGVjdXRpb24gb2YgYW4gYWxyZWFkeS13cml0dGVuIHBsYW4gZmlsZTogbG9hZCBpdCwgcmV2aWV3CiAgICBjcml0aWNhbGx5LCBydW4gZWFjaCB0YXNrJ3Mgc3RlcHMgaW4gb3JkZXIsIHZlcmlmeSBhcyBzcGVjaWZpZWQsIGFuZCBzdG9wCiAgICB0byBhc2sgcmF0aGVyIHRoYW4gZ3Vlc3Mgd2hlbiBibG9ja2VkLiBObyBzdWItYWdlbnQgZmFuLW91dCDigJQgc2VxdWVudGlhbC4KICBwcm9jZWR1cmU6CiAgICBzdGVwczoKICAgIC0gZGVzY3JpcHRpb246IFJlYWQgdGhlIHBsYW4gZmlsZS4gSWYgbm8gcGxhbiBmaWxlIGV4aXN0cyB5ZXQsIHRoZSBwbSByb2xlJ3Mgd3JpdGluZy1wbGFucyBza2lsbCBwcm9kdWNlcyBvbmUgZmlyc3Qg4oCUIGRvIG5vdCBpbXByb3Zpc2UgYSBwbGFuIGhlcmUuCiAgICAgIG9uX2ZhaWx1cmU6IGFib3J0CiAgICAgIG5lZWRzX2FwcHJvdmFsOiBmYWxzZQogICAgLSBkZXNjcmlwdGlvbjogJ1JldmlldyB0aGUgcGxhbiBjcml0aWNhbGx5OiBpZGVudGlmeSBnYXBzLCB1bmNsZWFyIGluc3RydWN0aW9ucywgb3IgY29uY2VybnMuIElmIGFueSBleGlzdCwgcmFpc2UgdGhlbSB3aXRoIHRoZSBodW1hbiBwYXJ0bmVyIG9yIHRoZSBmbGVldCByb3V0ZXIgYmVmb3JlIHN0YXJ0aW5nOyBpZiBub25lLCB0cmFjayBlYWNoIHRhc2sgYXMgYSBjaGVja2xpc3QgaXRlbS4nCiAgICAgIG9uX2ZhaWx1cmU6IGFib3J0CiAgICAgIG5lZWRzX2FwcHJvdmFsOiBmYWxzZQogICAgLSBkZXNjcmlwdGlvbjogJ0ZvciBlYWNoIHRhc2sgaW4gb3JkZXI6IG1hcmsgaXQgaW4tcHJvZ3Jlc3MgKGluIHRoZSBjaGVja2xpc3QgeW91JydyZSB0cmFja2luZywgb3IgYnkgcmVwb3J0aW5nIHN0YXR1cyBpbnRvIHRoZSBjaGFubmVsKSwgZm9sbG93IGVhY2ggYml0ZS1zaXplZCBzdGVwIGV4YWN0bHksIHJ1biB0aGUgdmVyaWZpY2F0aW9ucyB0aGUgcGxhbiBzcGVjaWZpZXMsIHRoZW4gbWFyayBpdCBjb21wbGV0ZS4nCiAgICAgIG9uX2ZhaWx1cmU6IGFib3J0CiAgICAgIG5lZWRzX2FwcHJvdmFsOiBmYWxzZQogICAgLSBkZXNjcmlwdGlvbjogJ1NUT1AgaW1tZWRpYXRlbHkgYW5kIGFzayBmb3IgY2xhcmlmaWNhdGlvbiAobmV2ZXIgZ3Vlc3MpIG9uOiBhIG1pc3NpbmcgZGVwZW5kZW5jeSwgYW4gdW5jbGVhciBpbnN0cnVjdGlvbiwgYSB2ZXJpZmljYXRpb24gdGhhdCBmYWlscyByZXBlYXRlZGx5LCBvciBhIHBsYW4gd2l0aCBhIGNyaXRpY2FsIGdhcCB0aGF0IGJsb2NrcyBzdGFydGluZy4nCiAgICAgIG9uX2ZhaWx1cmU6IGFib3J0CiAgICAgIG5lZWRzX2FwcHJvdmFsOiBmYWxzZQogICAgLSBkZXNjcmlwdGlvbjogSWYgdGhlIHBsYW4gY2hhbmdlcyBtaWQtZXhlY3V0aW9uIChwYXJ0bmVyIGZlZWRiYWNrKSBvciB0aGUgYXBwcm9hY2ggbmVlZHMgZnVuZGFtZW50YWwgcmV0aGlua2luZywgcmV0dXJuIHRvIHRoZSBsb2FkLWFuZC1yZXZpZXcgc3RlcCByYXRoZXIgdGhhbiBmb3JjaW5nIHRocm91Z2guCiAgICAgIG9uX2ZhaWx1cmU6IGFib3J0CiAgICAgIG5lZWRzX2FwcHJvdmFsOiBmYWxzZQogICAgLSBkZXNjcmlwdGlvbjogQWZ0ZXIgYWxsIHRhc2tzIGFyZSBjb21wbGV0ZSBhbmQgdmVyaWZpZWQsIGhhbmQgb2ZmIHRvIHRoZSByZXBvIHJvbGUncyBmaW5pc2hpbmctYS1kZXZlbG9wbWVudC1icmFuY2ggc2tpbGwgdG8gZGVjaWRlIGhvdyB0byBpbnRlZ3JhdGUgdGhlIHdvcmsgKG1lcmdlIC8gUFIgLyBrZWVwIC8gZGlzY2FyZCkuCiAgICAgIG9uX2ZhaWx1cmU6IGFib3J0CiAgICAgIG5lZWRzX2FwcHJvdmFsOiBmYWxzZQogICAgLSBkZXNjcmlwdGlvbjogTmV2ZXIgc3RhcnQgaW1wbGVtZW50YXRpb24gZGlyZWN0bHkgb24gbWFpbi9tYXN0ZXIgd2l0aG91dCBleHBsaWNpdCBjb25zZW50OyB2ZXJpZnkgdGhlIHdvcmtpbmcgdHJlZSBpcyBvbiBhIGZlYXR1cmUgYnJhbmNoIG9yIGlzb2xhdGVkIHdvcmt0cmVlIGZpcnN0IChzZWUgdGhlIHVzaW5nLWdpdC13b3JrdHJlZXMgc2tpbGwpLgogICAgICBvbl9mYWlsdXJlOiBhYm9ydAogICAgICBuZWVkc19hcHByb3ZhbDogZmFsc2UKdGFnczoKLSBjb2RlcgotIGV4ZWN1dGlvbgotIHdvcmtmbG93Ci0gc3VwZXJwb3dlcnMtZGVyaXZlZAp0cmlnZ2VyczoKLSB0eXBlOiBrZXl3b3JkCiAgcGF0dGVybjogZXhlY3V0aW5nLXBsYW5zCi0gdHlwZToga2V5d29yZAogIHBhdHRlcm46IGV4ZWN1dGUgdGhlIHBsYW4KcHJpb3JpdHk6IG5vcm1hbAp1cGRhdGVkX2F0OiAxOTcwLTAxLTAxVDAwOjAwOjAwWgo=","signatures":[{"keyid":"ed25519-d7ebf99f","publicKey":"9Q6YJDsRTV6FuJpC1n+7I5/OiO5VaJCSYzXmyeUcTk4=","sig":"S1LhyltpdC172vuHtxFDFzC3qaQo8xU+8/4Ksq4KQHabHw0s5q2g7RPIKLoSzKjZ1c2UQ2dL3/I9CIbmPgmfDQ=="}]}'
