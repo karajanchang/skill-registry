@@ -1,0 +1,45 @@
+name: verification-before-completion
+version: 1.0.0
+publisher: human:david
+description: Run the verification command and read its fresh output before claiming anything is done
+category: workflow
+provenance: human
+content:
+  abstract: |
+    Claiming work is complete without running a fresh verification is dishonest,
+    not efficient. Identify the exact command that proves the claim, run it in
+    this turn, read the full output, and only then state the result — with the
+    evidence attached.
+  procedure:
+    steps:
+    - description: 'Before any completion claim, identify the exact command that proves it: the test command for ''tests pass'', the build command for ''build succeeds'', the linter for ''lint clean'', a re-run of the original failing repro for ''bug fixed''.'
+      on_failure: abort
+      needs_approval: false
+    - description: Run that full command fresh, in this turn — never reuse a previous run's output, and never substitute a partial or related check (e.g. linter output does not prove the build compiles).
+      on_failure: abort
+      needs_approval: false
+    - description: 'Read the complete output: exit code, failure count, warnings. Confirm it actually supports the claim before saying anything positive.'
+      on_failure: abort
+      needs_approval: false
+    - description: 'State the claim only with the evidence attached (e.g. ''cargo nextest run -p mur-common: 42/42 passed'' — not ''should pass now'' or ''looks correct'').'
+      on_failure: abort
+      needs_approval: false
+    - description: Never trust a delegated agent's or subagent's self-reported success at face value — after delegation, independently check the diff/VCS state or re-run the verification yourself.
+      on_failure: abort
+      needs_approval: false
+    - description: 'Apply this before every completion-adjacent moment: committing, opening a PR, moving to the next task, or reporting a milestone back to a fleet router.'
+      on_failure: abort
+      needs_approval: false
+tags:
+- coder
+- verification
+- workflow
+- superpowers-derived
+triggers:
+- type: keyword
+  pattern: verification-before-completion
+- type: keyword
+  pattern: claim complete
+priority: normal
+updated_at: 1970-01-01T00:00:00Z
+publisher_signature: '{"payloadType":"application/vnd.mur.skill+yaml","payload":"bmFtZTogdmVyaWZpY2F0aW9uLWJlZm9yZS1jb21wbGV0aW9uCnZlcnNpb246IDEuMC4wCnB1Ymxpc2hlcjogaHVtYW46ZGF2aWQKZGVzY3JpcHRpb246IFJ1biB0aGUgdmVyaWZpY2F0aW9uIGNvbW1hbmQgYW5kIHJlYWQgaXRzIGZyZXNoIG91dHB1dCBiZWZvcmUgY2xhaW1pbmcgYW55dGhpbmcgaXMgZG9uZQpjYXRlZ29yeTogd29ya2Zsb3cKcHJvdmVuYW5jZTogaHVtYW4KY29udGVudDoKICBhYnN0cmFjdDogfAogICAgQ2xhaW1pbmcgd29yayBpcyBjb21wbGV0ZSB3aXRob3V0IHJ1bm5pbmcgYSBmcmVzaCB2ZXJpZmljYXRpb24gaXMgZGlzaG9uZXN0LAogICAgbm90IGVmZmljaWVudC4gSWRlbnRpZnkgdGhlIGV4YWN0IGNvbW1hbmQgdGhhdCBwcm92ZXMgdGhlIGNsYWltLCBydW4gaXQgaW4KICAgIHRoaXMgdHVybiwgcmVhZCB0aGUgZnVsbCBvdXRwdXQsIGFuZCBvbmx5IHRoZW4gc3RhdGUgdGhlIHJlc3VsdCDigJQgd2l0aCB0aGUKICAgIGV2aWRlbmNlIGF0dGFjaGVkLgogIHByb2NlZHVyZToKICAgIHN0ZXBzOgogICAgLSBkZXNjcmlwdGlvbjogJ0JlZm9yZSBhbnkgY29tcGxldGlvbiBjbGFpbSwgaWRlbnRpZnkgdGhlIGV4YWN0IGNvbW1hbmQgdGhhdCBwcm92ZXMgaXQ6IHRoZSB0ZXN0IGNvbW1hbmQgZm9yICcndGVzdHMgcGFzcycnLCB0aGUgYnVpbGQgY29tbWFuZCBmb3IgJydidWlsZCBzdWNjZWVkcycnLCB0aGUgbGludGVyIGZvciAnJ2xpbnQgY2xlYW4nJywgYSByZS1ydW4gb2YgdGhlIG9yaWdpbmFsIGZhaWxpbmcgcmVwcm8gZm9yICcnYnVnIGZpeGVkJycuJwogICAgICBvbl9mYWlsdXJlOiBhYm9ydAogICAgICBuZWVkc19hcHByb3ZhbDogZmFsc2UKICAgIC0gZGVzY3JpcHRpb246IFJ1biB0aGF0IGZ1bGwgY29tbWFuZCBmcmVzaCwgaW4gdGhpcyB0dXJuIOKAlCBuZXZlciByZXVzZSBhIHByZXZpb3VzIHJ1bidzIG91dHB1dCwgYW5kIG5ldmVyIHN1YnN0aXR1dGUgYSBwYXJ0aWFsIG9yIHJlbGF0ZWQgY2hlY2sgKGUuZy4gbGludGVyIG91dHB1dCBkb2VzIG5vdCBwcm92ZSB0aGUgYnVpbGQgY29tcGlsZXMpLgogICAgICBvbl9mYWlsdXJlOiBhYm9ydAogICAgICBuZWVkc19hcHByb3ZhbDogZmFsc2UKICAgIC0gZGVzY3JpcHRpb246ICdSZWFkIHRoZSBjb21wbGV0ZSBvdXRwdXQ6IGV4aXQgY29kZSwgZmFpbHVyZSBjb3VudCwgd2FybmluZ3MuIENvbmZpcm0gaXQgYWN0dWFsbHkgc3VwcG9ydHMgdGhlIGNsYWltIGJlZm9yZSBzYXlpbmcgYW55dGhpbmcgcG9zaXRpdmUuJwogICAgICBvbl9mYWlsdXJlOiBhYm9ydAogICAgICBuZWVkc19hcHByb3ZhbDogZmFsc2UKICAgIC0gZGVzY3JpcHRpb246ICdTdGF0ZSB0aGUgY2xhaW0gb25seSB3aXRoIHRoZSBldmlkZW5jZSBhdHRhY2hlZCAoZS5nLiAnJ2NhcmdvIG5leHRlc3QgcnVuIC1wIG11ci1jb21tb246IDQyLzQyIHBhc3NlZCcnIOKAlCBub3QgJydzaG91bGQgcGFzcyBub3cnJyBvciAnJ2xvb2tzIGNvcnJlY3QnJykuJwogICAgICBvbl9mYWlsdXJlOiBhYm9ydAogICAgICBuZWVkc19hcHByb3ZhbDogZmFsc2UKICAgIC0gZGVzY3JpcHRpb246IE5ldmVyIHRydXN0IGEgZGVsZWdhdGVkIGFnZW50J3Mgb3Igc3ViYWdlbnQncyBzZWxmLXJlcG9ydGVkIHN1Y2Nlc3MgYXQgZmFjZSB2YWx1ZSDigJQgYWZ0ZXIgZGVsZWdhdGlvbiwgaW5kZXBlbmRlbnRseSBjaGVjayB0aGUgZGlmZi9WQ1Mgc3RhdGUgb3IgcmUtcnVuIHRoZSB2ZXJpZmljYXRpb24geW91cnNlbGYuCiAgICAgIG9uX2ZhaWx1cmU6IGFib3J0CiAgICAgIG5lZWRzX2FwcHJvdmFsOiBmYWxzZQogICAgLSBkZXNjcmlwdGlvbjogJ0FwcGx5IHRoaXMgYmVmb3JlIGV2ZXJ5IGNvbXBsZXRpb24tYWRqYWNlbnQgbW9tZW50OiBjb21taXR0aW5nLCBvcGVuaW5nIGEgUFIsIG1vdmluZyB0byB0aGUgbmV4dCB0YXNrLCBvciByZXBvcnRpbmcgYSBtaWxlc3RvbmUgYmFjayB0byBhIGZsZWV0IHJvdXRlci4nCiAgICAgIG9uX2ZhaWx1cmU6IGFib3J0CiAgICAgIG5lZWRzX2FwcHJvdmFsOiBmYWxzZQp0YWdzOgotIGNvZGVyCi0gdmVyaWZpY2F0aW9uCi0gd29ya2Zsb3cKLSBzdXBlcnBvd2Vycy1kZXJpdmVkCnRyaWdnZXJzOgotIHR5cGU6IGtleXdvcmQKICBwYXR0ZXJuOiB2ZXJpZmljYXRpb24tYmVmb3JlLWNvbXBsZXRpb24KLSB0eXBlOiBrZXl3b3JkCiAgcGF0dGVybjogY2xhaW0gY29tcGxldGUKcHJpb3JpdHk6IG5vcm1hbAp1cGRhdGVkX2F0OiAxOTcwLTAxLTAxVDAwOjAwOjAwWgo=","signatures":[{"keyid":"ed25519-1eb7c5af","publicKey":"GCCP3svPnLs0XN+ObS3IiZhALzjCbu5McNbGa0Ref6I=","sig":"W0i1/Attb2I+W4h/yRgreSNsJ0uFtJJmEHs5mH3iwzz3vNsQSOpNYGlFscrYUK7aoz6TIBa2pXc6Wdk5lVEpAQ=="}]}'
