@@ -1,5 +1,5 @@
 schema_version: 1
-updated_at: 2026-07-05T01:32:48.903297+00:00
+updated_at: 2026-07-05T01:33:43.498947230+00:00
 skills:
   code-review:
     latest: 1.0.0
@@ -38,8 +38,6 @@ skills:
     - superpowers-derived
     content_sha256: 2b347b1423cb38d27254ce2939e9c4fd187aa653a9e9992204b1f1cc60302413
     install_count: 0
-    recommended_roles:
-    - repo
   mur-compress:
     latest: 0.1.0
     description: Read and recover auto-compressed tool outputs, and compress large text on demand. MUR shrinks big tool results automatically; the original is one mur_retrieve away.
