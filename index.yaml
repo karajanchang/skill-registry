@@ -1,5 +1,5 @@
 schema_version: 1
-updated_at: 2026-07-05T01:15:51.881287936+00:00
+updated_at: 2026-07-05T01:20:53.210992+00:00
 skills:
   executing-plans:
     latest: 1.0.0
@@ -26,6 +26,21 @@ skills:
     - builtin
     content_sha256: d1629f67ff489e91df88c6060b87d7e0a1bea3230eaaa3195d1d7150ef1f765a
     install_count: 0
+  test-driven-development:
+    latest: 1.0.0
+    description: Red-Green-Refactor — write the failing test first, watch it fail, then implement
+    publisher: human:david
+    category: workflow
+    tags:
+    - coder
+    - testing
+    - tdd
+    - workflow
+    - superpowers-derived
+    content_sha256: 31299bd6ff8de6598410d6280c2eeaab524b0672d432f4930d061633aaf46e30
+    install_count: 0
+    recommended_roles:
+    - coder
   writing-plans:
     latest: 1.0.0
     description: Write a bite-sized, file-path-exact implementation plan before touching code
