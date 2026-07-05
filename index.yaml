@@ -1,5 +1,5 @@
 schema_version: 1
-updated_at: 2026-07-05T01:32:29.364100316+00:00
+updated_at: 2026-07-05T01:32:48.903297+00:00
 skills:
   code-review:
     latest: 1.0.0
@@ -25,6 +25,21 @@ skills:
     - superpowers-derived
     content_sha256: 59b0d18bb07419454be124d1ad17c6701ef93ff19c4e693930e32f7a445cb2a3
     install_count: 0
+  finishing-a-development-branch:
+    latest: 1.0.0
+    description: Verify tests, then present merge/PR/keep/discard options to finish a development branch
+    publisher: human:david
+    category: workflow
+    tags:
+    - repo
+    - git
+    - merge
+    - workflow
+    - superpowers-derived
+    content_sha256: 2b347b1423cb38d27254ce2939e9c4fd187aa653a9e9992204b1f1cc60302413
+    install_count: 0
+    recommended_roles:
+    - repo
   mur-compress:
     latest: 0.1.0
     description: Read and recover auto-compressed tool outputs, and compress large text on demand. MUR shrinks big tool results automatically; the original is one mur_retrieve away.

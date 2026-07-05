@@ -1,0 +1,51 @@
+name: finishing-a-development-branch
+version: 1.0.0
+publisher: human:david
+description: Verify tests, then present merge/PR/keep/discard options to finish a development branch
+category: workflow
+provenance: human
+content:
+  abstract: |
+    Verify tests → detect environment → present exactly the right options →
+    execute the choice → clean up. This project's convention is a merge
+    commit (never squash) when the base of a stacked PR chain is involved.
+  procedure:
+    steps:
+    - description: 'Verify tests pass first: run the project''s full test command (e.g. `cargo test --workspace` or `cargo nextest run`). If any fail, report the failures and stop — do not present integration options until tests are green.'
+      on_failure: abort
+      needs_approval: false
+    - description: 'Detect the workspace environment: compare `git rev-parse --git-dir` vs `--git-common-dir` to tell whether this is a normal checkout, a named-branch worktree, or a detached-HEAD worktree — this determines which menu and which cleanup rules apply.'
+      on_failure: abort
+      needs_approval: false
+    - description: Determine the base branch (`git merge-base HEAD main` or ask if ambiguous).
+      on_failure: abort
+      needs_approval: false
+    - description: 'Present exactly these options for a normal repo or named-branch worktree: 1) merge back to the base branch locally, 2) push and open a PR, 3) keep the branch as-is, 4) discard the work. For detached HEAD, present only options 1 (as ''push as new branch + PR''), 2 (keep), 3 (discard) — no local merge.'
+      on_failure: abort
+      needs_approval: false
+    - description: 'Merge option: cd to the main repo root first, merge the feature branch into base, re-run the full test suite on the merged result, and only after that succeeds remove the worktree and delete the branch. If the base of a stacked PR chain is being merged, use a merge commit — never squash-merge a base branch, since squashing severs ancestry for its child branches.'
+      on_failure: abort
+      needs_approval: false
+    - description: 'PR option: push the branch; do NOT clean up the worktree — the user needs it alive to iterate on review feedback.'
+      on_failure: abort
+      needs_approval: false
+    - description: 'Discard option: require the literal typed word ''discard'' as confirmation before force-deleting the branch and removing the worktree.'
+      on_failure: abort
+      needs_approval: false
+    - description: Only clean up a worktree if it lives under this repo's `.worktrees/` (or `worktrees/`) directory — that's the marker that this tooling created it. Never remove a worktree the harness or a different session owns; always `cd` to the main repo root before running `git worktree remove`, then `git worktree prune`.
+      on_failure: abort
+      needs_approval: false
+tags:
+- repo
+- git
+- merge
+- workflow
+- superpowers-derived
+triggers:
+- type: keyword
+  pattern: finishing-a-development-branch
+- type: keyword
+  pattern: finish this branch
+priority: normal
+updated_at: 1970-01-01T00:00:00Z
+publisher_signature: '{"payloadType":"application/vnd.mur.skill+yaml","payload":"bmFtZTogZmluaXNoaW5nLWEtZGV2ZWxvcG1lbnQtYnJhbmNoCnZlcnNpb246IDEuMC4wCnB1Ymxpc2hlcjogaHVtYW46ZGF2aWQKZGVzY3JpcHRpb246IFZlcmlmeSB0ZXN0cywgdGhlbiBwcmVzZW50IG1lcmdlL1BSL2tlZXAvZGlzY2FyZCBvcHRpb25zIHRvIGZpbmlzaCBhIGRldmVsb3BtZW50IGJyYW5jaApjYXRlZ29yeTogd29ya2Zsb3cKcHJvdmVuYW5jZTogaHVtYW4KY29udGVudDoKICBhYnN0cmFjdDogfAogICAgVmVyaWZ5IHRlc3RzIOKGkiBkZXRlY3QgZW52aXJvbm1lbnQg4oaSIHByZXNlbnQgZXhhY3RseSB0aGUgcmlnaHQgb3B0aW9ucyDihpIKICAgIGV4ZWN1dGUgdGhlIGNob2ljZSDihpIgY2xlYW4gdXAuIFRoaXMgcHJvamVjdCdzIGNvbnZlbnRpb24gaXMgYSBtZXJnZQogICAgY29tbWl0IChuZXZlciBzcXVhc2gpIHdoZW4gdGhlIGJhc2Ugb2YgYSBzdGFja2VkIFBSIGNoYWluIGlzIGludm9sdmVkLgogIHByb2NlZHVyZToKICAgIHN0ZXBzOgogICAgLSBkZXNjcmlwdGlvbjogJ1ZlcmlmeSB0ZXN0cyBwYXNzIGZpcnN0OiBydW4gdGhlIHByb2plY3QnJ3MgZnVsbCB0ZXN0IGNvbW1hbmQgKGUuZy4gYGNhcmdvIHRlc3QgLS13b3Jrc3BhY2VgIG9yIGBjYXJnbyBuZXh0ZXN0IHJ1bmApLiBJZiBhbnkgZmFpbCwgcmVwb3J0IHRoZSBmYWlsdXJlcyBhbmQgc3RvcCDigJQgZG8gbm90IHByZXNlbnQgaW50ZWdyYXRpb24gb3B0aW9ucyB1bnRpbCB0ZXN0cyBhcmUgZ3JlZW4uJwogICAgICBvbl9mYWlsdXJlOiBhYm9ydAogICAgICBuZWVkc19hcHByb3ZhbDogZmFsc2UKICAgIC0gZGVzY3JpcHRpb246ICdEZXRlY3QgdGhlIHdvcmtzcGFjZSBlbnZpcm9ubWVudDogY29tcGFyZSBgZ2l0IHJldi1wYXJzZSAtLWdpdC1kaXJgIHZzIGAtLWdpdC1jb21tb24tZGlyYCB0byB0ZWxsIHdoZXRoZXIgdGhpcyBpcyBhIG5vcm1hbCBjaGVja291dCwgYSBuYW1lZC1icmFuY2ggd29ya3RyZWUsIG9yIGEgZGV0YWNoZWQtSEVBRCB3b3JrdHJlZSDigJQgdGhpcyBkZXRlcm1pbmVzIHdoaWNoIG1lbnUgYW5kIHdoaWNoIGNsZWFudXAgcnVsZXMgYXBwbHkuJwogICAgICBvbl9mYWlsdXJlOiBhYm9ydAogICAgICBuZWVkc19hcHByb3ZhbDogZmFsc2UKICAgIC0gZGVzY3JpcHRpb246IERldGVybWluZSB0aGUgYmFzZSBicmFuY2ggKGBnaXQgbWVyZ2UtYmFzZSBIRUFEIG1haW5gIG9yIGFzayBpZiBhbWJpZ3VvdXMpLgogICAgICBvbl9mYWlsdXJlOiBhYm9ydAogICAgICBuZWVkc19hcHByb3ZhbDogZmFsc2UKICAgIC0gZGVzY3JpcHRpb246ICdQcmVzZW50IGV4YWN0bHkgdGhlc2Ugb3B0aW9ucyBmb3IgYSBub3JtYWwgcmVwbyBvciBuYW1lZC1icmFuY2ggd29ya3RyZWU6IDEpIG1lcmdlIGJhY2sgdG8gdGhlIGJhc2UgYnJhbmNoIGxvY2FsbHksIDIpIHB1c2ggYW5kIG9wZW4gYSBQUiwgMykga2VlcCB0aGUgYnJhbmNoIGFzLWlzLCA0KSBkaXNjYXJkIHRoZSB3b3JrLiBGb3IgZGV0YWNoZWQgSEVBRCwgcHJlc2VudCBvbmx5IG9wdGlvbnMgMSAoYXMgJydwdXNoIGFzIG5ldyBicmFuY2ggKyBQUicnKSwgMiAoa2VlcCksIDMgKGRpc2NhcmQpIOKAlCBubyBsb2NhbCBtZXJnZS4nCiAgICAgIG9uX2ZhaWx1cmU6IGFib3J0CiAgICAgIG5lZWRzX2FwcHJvdmFsOiBmYWxzZQogICAgLSBkZXNjcmlwdGlvbjogJ01lcmdlIG9wdGlvbjogY2QgdG8gdGhlIG1haW4gcmVwbyByb290IGZpcnN0LCBtZXJnZSB0aGUgZmVhdHVyZSBicmFuY2ggaW50byBiYXNlLCByZS1ydW4gdGhlIGZ1bGwgdGVzdCBzdWl0ZSBvbiB0aGUgbWVyZ2VkIHJlc3VsdCwgYW5kIG9ubHkgYWZ0ZXIgdGhhdCBzdWNjZWVkcyByZW1vdmUgdGhlIHdvcmt0cmVlIGFuZCBkZWxldGUgdGhlIGJyYW5jaC4gSWYgdGhlIGJhc2Ugb2YgYSBzdGFja2VkIFBSIGNoYWluIGlzIGJlaW5nIG1lcmdlZCwgdXNlIGEgbWVyZ2UgY29tbWl0IOKAlCBuZXZlciBzcXVhc2gtbWVyZ2UgYSBiYXNlIGJyYW5jaCwgc2luY2Ugc3F1YXNoaW5nIHNldmVycyBhbmNlc3RyeSBmb3IgaXRzIGNoaWxkIGJyYW5jaGVzLicKICAgICAgb25fZmFpbHVyZTogYWJvcnQKICAgICAgbmVlZHNfYXBwcm92YWw6IGZhbHNlCiAgICAtIGRlc2NyaXB0aW9uOiAnUFIgb3B0aW9uOiBwdXNoIHRoZSBicmFuY2g7IGRvIE5PVCBjbGVhbiB1cCB0aGUgd29ya3RyZWUg4oCUIHRoZSB1c2VyIG5lZWRzIGl0IGFsaXZlIHRvIGl0ZXJhdGUgb24gcmV2aWV3IGZlZWRiYWNrLicKICAgICAgb25fZmFpbHVyZTogYWJvcnQKICAgICAgbmVlZHNfYXBwcm92YWw6IGZhbHNlCiAgICAtIGRlc2NyaXB0aW9uOiAnRGlzY2FyZCBvcHRpb246IHJlcXVpcmUgdGhlIGxpdGVyYWwgdHlwZWQgd29yZCAnJ2Rpc2NhcmQnJyBhcyBjb25maXJtYXRpb24gYmVmb3JlIGZvcmNlLWRlbGV0aW5nIHRoZSBicmFuY2ggYW5kIHJlbW92aW5nIHRoZSB3b3JrdHJlZS4nCiAgICAgIG9uX2ZhaWx1cmU6IGFib3J0CiAgICAgIG5lZWRzX2FwcHJvdmFsOiBmYWxzZQogICAgLSBkZXNjcmlwdGlvbjogT25seSBjbGVhbiB1cCBhIHdvcmt0cmVlIGlmIGl0IGxpdmVzIHVuZGVyIHRoaXMgcmVwbydzIGAud29ya3RyZWVzL2AgKG9yIGB3b3JrdHJlZXMvYCkgZGlyZWN0b3J5IOKAlCB0aGF0J3MgdGhlIG1hcmtlciB0aGF0IHRoaXMgdG9vbGluZyBjcmVhdGVkIGl0LiBOZXZlciByZW1vdmUgYSB3b3JrdHJlZSB0aGUgaGFybmVzcyBvciBhIGRpZmZlcmVudCBzZXNzaW9uIG93bnM7IGFsd2F5cyBgY2RgIHRvIHRoZSBtYWluIHJlcG8gcm9vdCBiZWZvcmUgcnVubmluZyBgZ2l0IHdvcmt0cmVlIHJlbW92ZWAsIHRoZW4gYGdpdCB3b3JrdHJlZSBwcnVuZWAuCiAgICAgIG9uX2ZhaWx1cmU6IGFib3J0CiAgICAgIG5lZWRzX2FwcHJvdmFsOiBmYWxzZQp0YWdzOgotIHJlcG8KLSBnaXQKLSBtZXJnZQotIHdvcmtmbG93Ci0gc3VwZXJwb3dlcnMtZGVyaXZlZAp0cmlnZ2VyczoKLSB0eXBlOiBrZXl3b3JkCiAgcGF0dGVybjogZmluaXNoaW5nLWEtZGV2ZWxvcG1lbnQtYnJhbmNoCi0gdHlwZToga2V5d29yZAogIHBhdHRlcm46IGZpbmlzaCB0aGlzIGJyYW5jaApwcmlvcml0eTogbm9ybWFsCnVwZGF0ZWRfYXQ6IDE5NzAtMDEtMDFUMDA6MDA6MDBaCg==","signatures":[{"keyid":"ed25519-5e586ba6","publicKey":"LUDESXxAkRq2ocM4pcPrXa5uMyP4mzvYNjF9mTuxQhY=","sig":"+SQWmKmNLIgEbhG+fcUsBPlS5q9vTCc2Oyt/cGugbxgJ6jEWJxmtWlHfHc4lSZw2xjc6ESlFj3KrUdMJumLICQ=="}]}'
