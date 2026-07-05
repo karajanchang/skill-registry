@@ -1,5 +1,5 @@
 schema_version: 1
-updated_at: 2026-07-05T01:25:23.570437671+00:00
+updated_at: 2026-07-05T01:26:20.676304+00:00
 skills:
   executing-plans:
     latest: 1.0.0
@@ -39,6 +39,21 @@ skills:
     - superpowers-derived
     content_sha256: 31299bd6ff8de6598410d6280c2eeaab524b0672d432f4930d061633aaf46e30
     install_count: 0
+  using-git-worktrees:
+    latest: 1.0.0
+    description: Ensure feature work happens in an isolated git worktree under the repo's .worktrees/ dir
+    publisher: human:david
+    category: workflow
+    tags:
+    - coder
+    - git
+    - worktree
+    - workflow
+    - superpowers-derived
+    content_sha256: 15ebf8fbd6549730c2484c5d0d3e72cda551a7b50dfe630b621a3930d921664b
+    install_count: 0
+    recommended_roles:
+    - coder
   writing-plans:
     latest: 1.0.0
     description: Write a bite-sized, file-path-exact implementation plan before touching code

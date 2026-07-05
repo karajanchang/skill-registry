@@ -1,0 +1,49 @@
+name: using-git-worktrees
+version: 1.0.0
+publisher: human:david
+description: Ensure feature work happens in an isolated git worktree under the repo's .worktrees/ dir
+category: workflow
+provenance: human
+content:
+  abstract: |
+    Detect existing isolation first, then create an isolated workspace only if
+    needed. MUR's convention is a worktree under the repo's own `.worktrees/`
+    directory — never under `~/.mur` (that path is reserved for MUR's runtime
+    data and would collide with agent state).
+  procedure:
+    steps:
+    - description: 'Detect existing isolation: compare `git rev-parse --git-dir` and `--git-common-dir`. If they differ and you''re not inside a git submodule (`git rev-parse --show-superproject-working-tree` returns empty), you''re already in a linked worktree — skip creation and go straight to project setup.'
+      on_failure: abort
+      needs_approval: false
+    - description: 'If in a normal checkout and no worktree preference was already declared, ask for consent before creating one: it protects the current branch from in-progress changes.'
+      on_failure: abort
+      needs_approval: false
+    - description: 'Check for an existing project-local worktree directory: prefer `.worktrees/` at the repo root (MUR''s convention); fall back to `worktrees/` only if `.worktrees/` doesn''t exist. Never use `~/.mur/worktrees` — that collides with the MUR runtime home.'
+      on_failure: abort
+      needs_approval: false
+    - description: Verify the chosen directory is git-ignored (`git check-ignore -q .worktrees`); if not, add it to `.gitignore` and commit that change before creating the worktree.
+      on_failure: abort
+      needs_approval: false
+    - description: 'Create the worktree: `git worktree add .worktrees/<branch-name> -b <branch-name>`, then operate with that path as cwd for all subsequent file and bash operations. If the sandbox denies worktree creation, report the denial and work in place instead.'
+      on_failure: abort
+      needs_approval: false
+    - description: Run project setup in the new worktree (e.g. `cargo build --workspace` for this repo) and verify a clean baseline test run before starting feature work; if baseline tests fail, report the failures and ask whether to proceed.
+      on_failure: abort
+      needs_approval: false
+    - description: 'Report readiness: worktree path, baseline test result, and which feature is about to be implemented.'
+      on_failure: abort
+      needs_approval: false
+tags:
+- coder
+- git
+- worktree
+- workflow
+- superpowers-derived
+triggers:
+- type: keyword
+  pattern: using-git-worktrees
+- type: keyword
+  pattern: isolated workspace
+priority: normal
+updated_at: 1970-01-01T00:00:00Z
+publisher_signature: '{"payloadType":"application/vnd.mur.skill+yaml","payload":"bmFtZTogdXNpbmctZ2l0LXdvcmt0cmVlcwp2ZXJzaW9uOiAxLjAuMApwdWJsaXNoZXI6IGh1bWFuOmRhdmlkCmRlc2NyaXB0aW9uOiBFbnN1cmUgZmVhdHVyZSB3b3JrIGhhcHBlbnMgaW4gYW4gaXNvbGF0ZWQgZ2l0IHdvcmt0cmVlIHVuZGVyIHRoZSByZXBvJ3MgLndvcmt0cmVlcy8gZGlyCmNhdGVnb3J5OiB3b3JrZmxvdwpwcm92ZW5hbmNlOiBodW1hbgpjb250ZW50OgogIGFic3RyYWN0OiB8CiAgICBEZXRlY3QgZXhpc3RpbmcgaXNvbGF0aW9uIGZpcnN0LCB0aGVuIGNyZWF0ZSBhbiBpc29sYXRlZCB3b3Jrc3BhY2Ugb25seSBpZgogICAgbmVlZGVkLiBNVVIncyBjb252ZW50aW9uIGlzIGEgd29ya3RyZWUgdW5kZXIgdGhlIHJlcG8ncyBvd24gYC53b3JrdHJlZXMvYAogICAgZGlyZWN0b3J5IOKAlCBuZXZlciB1bmRlciBgfi8ubXVyYCAodGhhdCBwYXRoIGlzIHJlc2VydmVkIGZvciBNVVIncyBydW50aW1lCiAgICBkYXRhIGFuZCB3b3VsZCBjb2xsaWRlIHdpdGggYWdlbnQgc3RhdGUpLgogIHByb2NlZHVyZToKICAgIHN0ZXBzOgogICAgLSBkZXNjcmlwdGlvbjogJ0RldGVjdCBleGlzdGluZyBpc29sYXRpb246IGNvbXBhcmUgYGdpdCByZXYtcGFyc2UgLS1naXQtZGlyYCBhbmQgYC0tZ2l0LWNvbW1vbi1kaXJgLiBJZiB0aGV5IGRpZmZlciBhbmQgeW91JydyZSBub3QgaW5zaWRlIGEgZ2l0IHN1Ym1vZHVsZSAoYGdpdCByZXYtcGFyc2UgLS1zaG93LXN1cGVycHJvamVjdC13b3JraW5nLXRyZWVgIHJldHVybnMgZW1wdHkpLCB5b3UnJ3JlIGFscmVhZHkgaW4gYSBsaW5rZWQgd29ya3RyZWUg4oCUIHNraXAgY3JlYXRpb24gYW5kIGdvIHN0cmFpZ2h0IHRvIHByb2plY3Qgc2V0dXAuJwogICAgICBvbl9mYWlsdXJlOiBhYm9ydAogICAgICBuZWVkc19hcHByb3ZhbDogZmFsc2UKICAgIC0gZGVzY3JpcHRpb246ICdJZiBpbiBhIG5vcm1hbCBjaGVja291dCBhbmQgbm8gd29ya3RyZWUgcHJlZmVyZW5jZSB3YXMgYWxyZWFkeSBkZWNsYXJlZCwgYXNrIGZvciBjb25zZW50IGJlZm9yZSBjcmVhdGluZyBvbmU6IGl0IHByb3RlY3RzIHRoZSBjdXJyZW50IGJyYW5jaCBmcm9tIGluLXByb2dyZXNzIGNoYW5nZXMuJwogICAgICBvbl9mYWlsdXJlOiBhYm9ydAogICAgICBuZWVkc19hcHByb3ZhbDogZmFsc2UKICAgIC0gZGVzY3JpcHRpb246ICdDaGVjayBmb3IgYW4gZXhpc3RpbmcgcHJvamVjdC1sb2NhbCB3b3JrdHJlZSBkaXJlY3Rvcnk6IHByZWZlciBgLndvcmt0cmVlcy9gIGF0IHRoZSByZXBvIHJvb3QgKE1VUicncyBjb252ZW50aW9uKTsgZmFsbCBiYWNrIHRvIGB3b3JrdHJlZXMvYCBvbmx5IGlmIGAud29ya3RyZWVzL2AgZG9lc24nJ3QgZXhpc3QuIE5ldmVyIHVzZSBgfi8ubXVyL3dvcmt0cmVlc2Ag4oCUIHRoYXQgY29sbGlkZXMgd2l0aCB0aGUgTVVSIHJ1bnRpbWUgaG9tZS4nCiAgICAgIG9uX2ZhaWx1cmU6IGFib3J0CiAgICAgIG5lZWRzX2FwcHJvdmFsOiBmYWxzZQogICAgLSBkZXNjcmlwdGlvbjogVmVyaWZ5IHRoZSBjaG9zZW4gZGlyZWN0b3J5IGlzIGdpdC1pZ25vcmVkIChgZ2l0IGNoZWNrLWlnbm9yZSAtcSAud29ya3RyZWVzYCk7IGlmIG5vdCwgYWRkIGl0IHRvIGAuZ2l0aWdub3JlYCBhbmQgY29tbWl0IHRoYXQgY2hhbmdlIGJlZm9yZSBjcmVhdGluZyB0aGUgd29ya3RyZWUuCiAgICAgIG9uX2ZhaWx1cmU6IGFib3J0CiAgICAgIG5lZWRzX2FwcHJvdmFsOiBmYWxzZQogICAgLSBkZXNjcmlwdGlvbjogJ0NyZWF0ZSB0aGUgd29ya3RyZWU6IGBnaXQgd29ya3RyZWUgYWRkIC53b3JrdHJlZXMvPGJyYW5jaC1uYW1lPiAtYiA8YnJhbmNoLW5hbWU+YCwgdGhlbiBvcGVyYXRlIHdpdGggdGhhdCBwYXRoIGFzIGN3ZCBmb3IgYWxsIHN1YnNlcXVlbnQgZmlsZSBhbmQgYmFzaCBvcGVyYXRpb25zLiBJZiB0aGUgc2FuZGJveCBkZW5pZXMgd29ya3RyZWUgY3JlYXRpb24sIHJlcG9ydCB0aGUgZGVuaWFsIGFuZCB3b3JrIGluIHBsYWNlIGluc3RlYWQuJwogICAgICBvbl9mYWlsdXJlOiBhYm9ydAogICAgICBuZWVkc19hcHByb3ZhbDogZmFsc2UKICAgIC0gZGVzY3JpcHRpb246IFJ1biBwcm9qZWN0IHNldHVwIGluIHRoZSBuZXcgd29ya3RyZWUgKGUuZy4gYGNhcmdvIGJ1aWxkIC0td29ya3NwYWNlYCBmb3IgdGhpcyByZXBvKSBhbmQgdmVyaWZ5IGEgY2xlYW4gYmFzZWxpbmUgdGVzdCBydW4gYmVmb3JlIHN0YXJ0aW5nIGZlYXR1cmUgd29yazsgaWYgYmFzZWxpbmUgdGVzdHMgZmFpbCwgcmVwb3J0IHRoZSBmYWlsdXJlcyBhbmQgYXNrIHdoZXRoZXIgdG8gcHJvY2VlZC4KICAgICAgb25fZmFpbHVyZTogYWJvcnQKICAgICAgbmVlZHNfYXBwcm92YWw6IGZhbHNlCiAgICAtIGRlc2NyaXB0aW9uOiAnUmVwb3J0IHJlYWRpbmVzczogd29ya3RyZWUgcGF0aCwgYmFzZWxpbmUgdGVzdCByZXN1bHQsIGFuZCB3aGljaCBmZWF0dXJlIGlzIGFib3V0IHRvIGJlIGltcGxlbWVudGVkLicKICAgICAgb25fZmFpbHVyZTogYWJvcnQKICAgICAgbmVlZHNfYXBwcm92YWw6IGZhbHNlCnRhZ3M6Ci0gY29kZXIKLSBnaXQKLSB3b3JrdHJlZQotIHdvcmtmbG93Ci0gc3VwZXJwb3dlcnMtZGVyaXZlZAp0cmlnZ2VyczoKLSB0eXBlOiBrZXl3b3JkCiAgcGF0dGVybjogdXNpbmctZ2l0LXdvcmt0cmVlcwotIHR5cGU6IGtleXdvcmQKICBwYXR0ZXJuOiBpc29sYXRlZCB3b3Jrc3BhY2UKcHJpb3JpdHk6IG5vcm1hbAp1cGRhdGVkX2F0OiAxOTcwLTAxLTAxVDAwOjAwOjAwWgo=","signatures":[{"keyid":"ed25519-5c004e76","publicKey":"e4edY3ZNxK11gW/40Fe/UXGlAjism85G5yb8BDEsaPE=","sig":"xm1qO4zP3q8D7f9aJ/uIHdiGNrnd4F8NuROu9FHbcoAFdlAnLwTdAbAFSaMfPs0a6dZIzbF9qczUR72+VLFDDw=="}]}'
