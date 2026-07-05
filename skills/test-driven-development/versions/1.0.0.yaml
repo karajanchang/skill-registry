@@ -1,0 +1,48 @@
+name: test-driven-development
+version: 1.0.0
+publisher: human:david
+description: Red-Green-Refactor — write the failing test first, watch it fail, then implement
+category: workflow
+provenance: human
+content:
+  abstract: |
+    No production code without a failing test first. Write one minimal test,
+    watch it fail for the right reason, write the smallest code to pass, then
+    refactor while staying green. Applies to every feature, bugfix, and refactor.
+  procedure:
+    steps:
+    - description: 'RED: Write one minimal test for one behavior, with a clear name showing intent. Use real code paths, not mocks, unless a dependency is genuinely unavoidable to fake.'
+      on_failure: abort
+      needs_approval: false
+    - description: 'Verify RED: run the test (e.g. `cargo nextest run -p <crate> <test_name>` or `cargo test <test_name>`) and confirm it fails for the expected reason — feature missing, not a typo or setup error. If it passes immediately, you''re testing existing behavior; fix the test.'
+      on_failure: abort
+      needs_approval: false
+    - description: 'GREEN: write the simplest code that makes the test pass. Don''t add unrequested options, refactor unrelated code, or generalize beyond what the test demands (YAGNI).'
+      on_failure: abort
+      needs_approval: false
+    - description: 'Verify GREEN: re-run the test and the full suite. Confirm the target test passes, no other tests broke, and output is clean (no warnings/errors).'
+      on_failure: abort
+      needs_approval: false
+    - description: 'REFACTOR: with tests green, remove duplication, improve names, extract helpers. Do not add new behavior during refactor; keep re-running tests to stay green.'
+      on_failure: abort
+      needs_approval: false
+    - description: 'Repeat the cycle for the next behavior. For a discovered bug: write a failing test that reproduces it first, then follow the same RED-GREEN-REFACTOR cycle — never patch a bug without a regression test.'
+      on_failure: abort
+      needs_approval: false
+    - description: Before claiming a task done, confirm every new function has a test, every test was watched failing before the fix, and the full test command's fresh output shows 0 failures (see verification-before-completion).
+      on_failure: abort
+      needs_approval: false
+tags:
+- coder
+- testing
+- tdd
+- workflow
+- superpowers-derived
+triggers:
+- type: keyword
+  pattern: test-driven-development
+- type: keyword
+  pattern: TDD
+priority: normal
+updated_at: 1970-01-01T00:00:00Z
+publisher_signature: '{"payloadType":"application/vnd.mur.skill+yaml","payload":"bmFtZTogdGVzdC1kcml2ZW4tZGV2ZWxvcG1lbnQKdmVyc2lvbjogMS4wLjAKcHVibGlzaGVyOiBodW1hbjpkYXZpZApkZXNjcmlwdGlvbjogUmVkLUdyZWVuLVJlZmFjdG9yIOKAlCB3cml0ZSB0aGUgZmFpbGluZyB0ZXN0IGZpcnN0LCB3YXRjaCBpdCBmYWlsLCB0aGVuIGltcGxlbWVudApjYXRlZ29yeTogd29ya2Zsb3cKcHJvdmVuYW5jZTogaHVtYW4KY29udGVudDoKICBhYnN0cmFjdDogfAogICAgTm8gcHJvZHVjdGlvbiBjb2RlIHdpdGhvdXQgYSBmYWlsaW5nIHRlc3QgZmlyc3QuIFdyaXRlIG9uZSBtaW5pbWFsIHRlc3QsCiAgICB3YXRjaCBpdCBmYWlsIGZvciB0aGUgcmlnaHQgcmVhc29uLCB3cml0ZSB0aGUgc21hbGxlc3QgY29kZSB0byBwYXNzLCB0aGVuCiAgICByZWZhY3RvciB3aGlsZSBzdGF5aW5nIGdyZWVuLiBBcHBsaWVzIHRvIGV2ZXJ5IGZlYXR1cmUsIGJ1Z2ZpeCwgYW5kIHJlZmFjdG9yLgogIHByb2NlZHVyZToKICAgIHN0ZXBzOgogICAgLSBkZXNjcmlwdGlvbjogJ1JFRDogV3JpdGUgb25lIG1pbmltYWwgdGVzdCBmb3Igb25lIGJlaGF2aW9yLCB3aXRoIGEgY2xlYXIgbmFtZSBzaG93aW5nIGludGVudC4gVXNlIHJlYWwgY29kZSBwYXRocywgbm90IG1vY2tzLCB1bmxlc3MgYSBkZXBlbmRlbmN5IGlzIGdlbnVpbmVseSB1bmF2b2lkYWJsZSB0byBmYWtlLicKICAgICAgb25fZmFpbHVyZTogYWJvcnQKICAgICAgbmVlZHNfYXBwcm92YWw6IGZhbHNlCiAgICAtIGRlc2NyaXB0aW9uOiAnVmVyaWZ5IFJFRDogcnVuIHRoZSB0ZXN0IChlLmcuIGBjYXJnbyBuZXh0ZXN0IHJ1biAtcCA8Y3JhdGU+IDx0ZXN0X25hbWU+YCBvciBgY2FyZ28gdGVzdCA8dGVzdF9uYW1lPmApIGFuZCBjb25maXJtIGl0IGZhaWxzIGZvciB0aGUgZXhwZWN0ZWQgcmVhc29uIOKAlCBmZWF0dXJlIG1pc3NpbmcsIG5vdCBhIHR5cG8gb3Igc2V0dXAgZXJyb3IuIElmIGl0IHBhc3NlcyBpbW1lZGlhdGVseSwgeW91JydyZSB0ZXN0aW5nIGV4aXN0aW5nIGJlaGF2aW9yOyBmaXggdGhlIHRlc3QuJwogICAgICBvbl9mYWlsdXJlOiBhYm9ydAogICAgICBuZWVkc19hcHByb3ZhbDogZmFsc2UKICAgIC0gZGVzY3JpcHRpb246ICdHUkVFTjogd3JpdGUgdGhlIHNpbXBsZXN0IGNvZGUgdGhhdCBtYWtlcyB0aGUgdGVzdCBwYXNzLiBEb24nJ3QgYWRkIHVucmVxdWVzdGVkIG9wdGlvbnMsIHJlZmFjdG9yIHVucmVsYXRlZCBjb2RlLCBvciBnZW5lcmFsaXplIGJleW9uZCB3aGF0IHRoZSB0ZXN0IGRlbWFuZHMgKFlBR05JKS4nCiAgICAgIG9uX2ZhaWx1cmU6IGFib3J0CiAgICAgIG5lZWRzX2FwcHJvdmFsOiBmYWxzZQogICAgLSBkZXNjcmlwdGlvbjogJ1ZlcmlmeSBHUkVFTjogcmUtcnVuIHRoZSB0ZXN0IGFuZCB0aGUgZnVsbCBzdWl0ZS4gQ29uZmlybSB0aGUgdGFyZ2V0IHRlc3QgcGFzc2VzLCBubyBvdGhlciB0ZXN0cyBicm9rZSwgYW5kIG91dHB1dCBpcyBjbGVhbiAobm8gd2FybmluZ3MvZXJyb3JzKS4nCiAgICAgIG9uX2ZhaWx1cmU6IGFib3J0CiAgICAgIG5lZWRzX2FwcHJvdmFsOiBmYWxzZQogICAgLSBkZXNjcmlwdGlvbjogJ1JFRkFDVE9SOiB3aXRoIHRlc3RzIGdyZWVuLCByZW1vdmUgZHVwbGljYXRpb24sIGltcHJvdmUgbmFtZXMsIGV4dHJhY3QgaGVscGVycy4gRG8gbm90IGFkZCBuZXcgYmVoYXZpb3IgZHVyaW5nIHJlZmFjdG9yOyBrZWVwIHJlLXJ1bm5pbmcgdGVzdHMgdG8gc3RheSBncmVlbi4nCiAgICAgIG9uX2ZhaWx1cmU6IGFib3J0CiAgICAgIG5lZWRzX2FwcHJvdmFsOiBmYWxzZQogICAgLSBkZXNjcmlwdGlvbjogJ1JlcGVhdCB0aGUgY3ljbGUgZm9yIHRoZSBuZXh0IGJlaGF2aW9yLiBGb3IgYSBkaXNjb3ZlcmVkIGJ1Zzogd3JpdGUgYSBmYWlsaW5nIHRlc3QgdGhhdCByZXByb2R1Y2VzIGl0IGZpcnN0LCB0aGVuIGZvbGxvdyB0aGUgc2FtZSBSRUQtR1JFRU4tUkVGQUNUT1IgY3ljbGUg4oCUIG5ldmVyIHBhdGNoIGEgYnVnIHdpdGhvdXQgYSByZWdyZXNzaW9uIHRlc3QuJwogICAgICBvbl9mYWlsdXJlOiBhYm9ydAogICAgICBuZWVkc19hcHByb3ZhbDogZmFsc2UKICAgIC0gZGVzY3JpcHRpb246IEJlZm9yZSBjbGFpbWluZyBhIHRhc2sgZG9uZSwgY29uZmlybSBldmVyeSBuZXcgZnVuY3Rpb24gaGFzIGEgdGVzdCwgZXZlcnkgdGVzdCB3YXMgd2F0Y2hlZCBmYWlsaW5nIGJlZm9yZSB0aGUgZml4LCBhbmQgdGhlIGZ1bGwgdGVzdCBjb21tYW5kJ3MgZnJlc2ggb3V0cHV0IHNob3dzIDAgZmFpbHVyZXMgKHNlZSB2ZXJpZmljYXRpb24tYmVmb3JlLWNvbXBsZXRpb24pLgogICAgICBvbl9mYWlsdXJlOiBhYm9ydAogICAgICBuZWVkc19hcHByb3ZhbDogZmFsc2UKdGFnczoKLSBjb2RlcgotIHRlc3RpbmcKLSB0ZGQKLSB3b3JrZmxvdwotIHN1cGVycG93ZXJzLWRlcml2ZWQKdHJpZ2dlcnM6Ci0gdHlwZToga2V5d29yZAogIHBhdHRlcm46IHRlc3QtZHJpdmVuLWRldmVsb3BtZW50Ci0gdHlwZToga2V5d29yZAogIHBhdHRlcm46IFRERApwcmlvcml0eTogbm9ybWFsCnVwZGF0ZWRfYXQ6IDE5NzAtMDEtMDFUMDA6MDA6MDBaCg==","signatures":[{"keyid":"ed25519-25cf388b","publicKey":"uJh7VhH2GffydLs0WG2rKa5cb8tjeMWYViBcuEWuDGI=","sig":"z5Kofz8qJdaWCetfOOziUOfBmQRaVtTclKOF6DnHonwyxbEahLBhM0+3kv5X+oFzteicmEtAIHtFtp+LyvdADA=="}]}'
