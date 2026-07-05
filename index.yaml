@@ -1,5 +1,5 @@
 schema_version: 1
-updated_at: 2026-07-05T01:27:20.994979284+00:00
+updated_at: 2026-07-05T01:27:45.122264+00:00
 skills:
   executing-plans:
     latest: 1.0.0
@@ -26,6 +26,21 @@ skills:
     - builtin
     content_sha256: d1629f67ff489e91df88c6060b87d7e0a1bea3230eaaa3195d1d7150ef1f765a
     install_count: 0
+  systematic-debugging:
+    latest: 1.0.0
+    description: Phase-gated root-cause investigation before proposing any fix
+    publisher: human:david
+    category: workflow
+    tags:
+    - coder
+    - debugging
+    - root-cause
+    - workflow
+    - superpowers-derived
+    content_sha256: d84e6a6c66026291c93fbfa1321e09d31482273c2093372e91cdffb005daa3ad
+    install_count: 0
+    recommended_roles:
+    - coder
   test-driven-development:
     latest: 1.0.0
     description: Red-Green-Refactor — write the failing test first, watch it fail, then implement
