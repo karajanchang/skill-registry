@@ -1,5 +1,5 @@
 schema_version: 1
-updated_at: 2026-07-05T01:29:59.942948887+00:00
+updated_at: 2026-07-05T01:30:06.308576+00:00
 skills:
   executing-plans:
     latest: 1.0.0
@@ -26,6 +26,20 @@ skills:
     - builtin
     content_sha256: d1629f67ff489e91df88c6060b87d7e0a1bea3230eaaa3195d1d7150ef1f765a
     install_count: 0
+  receiving-code-review:
+    latest: 1.0.0
+    description: Verify code review feedback technically before implementing it — no performative agreement
+    publisher: human:david
+    category: workflow
+    tags:
+    - coder
+    - code-review
+    - workflow
+    - superpowers-derived
+    content_sha256: 1307a4b01e8235f27bebbe0321f2ee6a5e6ca66f99e712390211660221463117
+    install_count: 0
+    recommended_roles:
+    - coder
   systematic-debugging:
     latest: 1.0.0
     description: Phase-gated root-cause investigation before proposing any fix
