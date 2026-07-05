@@ -1,5 +1,5 @@
 schema_version: 1
-updated_at: 2026-07-05T01:30:06.308576+00:00
+updated_at: 2026-07-05T01:31:04.346212036+00:00
 skills:
   executing-plans:
     latest: 1.0.0
@@ -38,8 +38,6 @@ skills:
     - superpowers-derived
     content_sha256: 1307a4b01e8235f27bebbe0321f2ee6a5e6ca66f99e712390211660221463117
     install_count: 0
-    recommended_roles:
-    - coder
   systematic-debugging:
     latest: 1.0.0
     description: Phase-gated root-cause investigation before proposing any fix
