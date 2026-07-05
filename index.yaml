@@ -13,6 +13,8 @@ skills:
     - superpowers-derived
     content_sha256: 00c1c62dbaaba39e0fa4c048279314d149efa796386362f2f084647e27c61bdb
     install_count: 0
+    recommended_roles:
+    - qa
   executing-plans:
     latest: 1.0.0
     description: Load a written plan, execute its tasks sequentially with checkpoints, stop when blocked
@@ -25,6 +27,8 @@ skills:
     - superpowers-derived
     content_sha256: 59b0d18bb07419454be124d1ad17c6701ef93ff19c4e693930e32f7a445cb2a3
     install_count: 0
+    recommended_roles:
+    - coder
   finishing-a-development-branch:
     latest: 1.0.0
     description: Verify tests, then present merge/PR/keep/discard options to finish a development branch
@@ -38,6 +42,8 @@ skills:
     - superpowers-derived
     content_sha256: 2b347b1423cb38d27254ce2939e9c4fd187aa653a9e9992204b1f1cc60302413
     install_count: 0
+    recommended_roles:
+    - repo
   mur-compress:
     latest: 0.1.0
     description: Read and recover auto-compressed tool outputs, and compress large text on demand. MUR shrinks big tool results automatically; the original is one mur_retrieve away.
@@ -63,6 +69,8 @@ skills:
     - superpowers-derived
     content_sha256: 1307a4b01e8235f27bebbe0321f2ee6a5e6ca66f99e712390211660221463117
     install_count: 0
+    recommended_roles:
+    - coder
   systematic-debugging:
     latest: 1.0.0
     description: Phase-gated root-cause investigation before proposing any fix
@@ -76,6 +84,8 @@ skills:
     - superpowers-derived
     content_sha256: d84e6a6c66026291c93fbfa1321e09d31482273c2093372e91cdffb005daa3ad
     install_count: 0
+    recommended_roles:
+    - coder
   test-driven-development:
     latest: 1.0.0
     description: Red-Green-Refactor — write the failing test first, watch it fail, then implement
@@ -89,6 +99,8 @@ skills:
     - superpowers-derived
     content_sha256: 31299bd6ff8de6598410d6280c2eeaab524b0672d432f4930d061633aaf46e30
     install_count: 0
+    recommended_roles:
+    - coder
   using-git-worktrees:
     latest: 1.0.0
     description: Ensure feature work happens in an isolated git worktree under the repo's .worktrees/ dir
@@ -102,6 +114,8 @@ skills:
     - superpowers-derived
     content_sha256: 15ebf8fbd6549730c2484c5d0d3e72cda551a7b50dfe630b621a3930d921664b
     install_count: 0
+    recommended_roles:
+    - coder
   verification-before-completion:
     latest: 1.0.0
     description: Run the verification command and read its fresh output before claiming anything is done
@@ -114,6 +128,8 @@ skills:
     - superpowers-derived
     content_sha256: 5f4894c7f7f858a42cba8242eaaa9ad823c3015b43e36d9b21548d0c34562157
     install_count: 0
+    recommended_roles:
+    - coder
   writing-plans:
     latest: 1.0.0
     description: Write a bite-sized, file-path-exact implementation plan before touching code
@@ -126,3 +142,5 @@ skills:
     - superpowers-derived
     content_sha256: ef65206a0265f27b4bf6c204af9e05b3eee09412cbe742e99b36427f0fcc5cc4
     install_count: 0
+    recommended_roles:
+    - pm
