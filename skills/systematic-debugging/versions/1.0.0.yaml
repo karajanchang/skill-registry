@@ -1,0 +1,51 @@
+name: systematic-debugging
+version: 1.0.0
+publisher: human:david
+description: Phase-gated root-cause investigation before proposing any fix
+category: workflow
+provenance: human
+content:
+  abstract: |
+    No fixes without root-cause investigation first. Four gated phases: read
+    the evidence, find the pattern, form and test one hypothesis, then
+    implement the fix at the root — never patch symptoms.
+  procedure:
+    steps:
+    - description: 'Phase 1 — Root cause: read the full error/stack trace, reproduce the issue consistently (exact steps, every time; if not reproducible, gather more evidence instead of guessing), and check recent changes (git diff, new deps, config/env drift).'
+      on_failure: abort
+      needs_approval: false
+    - description: 'Phase 1 — Multi-component evidence: if the failure spans component boundaries (e.g. CI → build → sign, or agent → channel → runtime), add diagnostic logging at each boundary and run once to see exactly where it breaks before analyzing further.'
+      on_failure: abort
+      needs_approval: false
+    - description: 'Phase 1 — Trace data flow: for errors deep in a call stack, trace backward from the bad value to its origin; fix at the source, not where the symptom surfaces.'
+      on_failure: abort
+      needs_approval: false
+    - description: 'Phase 2 — Pattern analysis: find a working example similar to the broken one, read any reference implementation completely (not skimmed), and list every difference between working and broken, however small.'
+      on_failure: abort
+      needs_approval: false
+    - description: 'Phase 3 — Hypothesis: state a single, specific hypothesis (''I think X is the root cause because Y''). Make the smallest possible change to test it, one variable at a time. If it doesn''t confirm, form a new hypothesis — don''t stack a second fix on top.'
+      on_failure: abort
+      needs_approval: false
+    - description: 'Phase 4 — Implementation: write a failing test that reproduces the bug first (see test-driven-development), implement one fix addressing the root cause, then verify the test passes and no other tests broke.'
+      on_failure: abort
+      needs_approval: false
+    - description: 'If 3 or more fix attempts have failed, stop attempting further point fixes. Each new failure surfacing in a different place is a signal the architecture itself is unsound — raise this with the human partner or router before trying fix #4.'
+      on_failure: abort
+      needs_approval: false
+    - description: Once fixed, hand off to verification-before-completion before claiming the bug resolved.
+      on_failure: abort
+      needs_approval: false
+tags:
+- coder
+- debugging
+- root-cause
+- workflow
+- superpowers-derived
+triggers:
+- type: keyword
+  pattern: systematic-debugging
+- type: keyword
+  pattern: root cause
+priority: normal
+updated_at: 1970-01-01T00:00:00Z
+publisher_signature: '{"payloadType":"application/vnd.mur.skill+yaml","payload":"bmFtZTogc3lzdGVtYXRpYy1kZWJ1Z2dpbmcKdmVyc2lvbjogMS4wLjAKcHVibGlzaGVyOiBodW1hbjpkYXZpZApkZXNjcmlwdGlvbjogUGhhc2UtZ2F0ZWQgcm9vdC1jYXVzZSBpbnZlc3RpZ2F0aW9uIGJlZm9yZSBwcm9wb3NpbmcgYW55IGZpeApjYXRlZ29yeTogd29ya2Zsb3cKcHJvdmVuYW5jZTogaHVtYW4KY29udGVudDoKICBhYnN0cmFjdDogfAogICAgTm8gZml4ZXMgd2l0aG91dCByb290LWNhdXNlIGludmVzdGlnYXRpb24gZmlyc3QuIEZvdXIgZ2F0ZWQgcGhhc2VzOiByZWFkCiAgICB0aGUgZXZpZGVuY2UsIGZpbmQgdGhlIHBhdHRlcm4sIGZvcm0gYW5kIHRlc3Qgb25lIGh5cG90aGVzaXMsIHRoZW4KICAgIGltcGxlbWVudCB0aGUgZml4IGF0IHRoZSByb290IOKAlCBuZXZlciBwYXRjaCBzeW1wdG9tcy4KICBwcm9jZWR1cmU6CiAgICBzdGVwczoKICAgIC0gZGVzY3JpcHRpb246ICdQaGFzZSAxIOKAlCBSb290IGNhdXNlOiByZWFkIHRoZSBmdWxsIGVycm9yL3N0YWNrIHRyYWNlLCByZXByb2R1Y2UgdGhlIGlzc3VlIGNvbnNpc3RlbnRseSAoZXhhY3Qgc3RlcHMsIGV2ZXJ5IHRpbWU7IGlmIG5vdCByZXByb2R1Y2libGUsIGdhdGhlciBtb3JlIGV2aWRlbmNlIGluc3RlYWQgb2YgZ3Vlc3NpbmcpLCBhbmQgY2hlY2sgcmVjZW50IGNoYW5nZXMgKGdpdCBkaWZmLCBuZXcgZGVwcywgY29uZmlnL2VudiBkcmlmdCkuJwogICAgICBvbl9mYWlsdXJlOiBhYm9ydAogICAgICBuZWVkc19hcHByb3ZhbDogZmFsc2UKICAgIC0gZGVzY3JpcHRpb246ICdQaGFzZSAxIOKAlCBNdWx0aS1jb21wb25lbnQgZXZpZGVuY2U6IGlmIHRoZSBmYWlsdXJlIHNwYW5zIGNvbXBvbmVudCBib3VuZGFyaWVzIChlLmcuIENJIOKGkiBidWlsZCDihpIgc2lnbiwgb3IgYWdlbnQg4oaSIGNoYW5uZWwg4oaSIHJ1bnRpbWUpLCBhZGQgZGlhZ25vc3RpYyBsb2dnaW5nIGF0IGVhY2ggYm91bmRhcnkgYW5kIHJ1biBvbmNlIHRvIHNlZSBleGFjdGx5IHdoZXJlIGl0IGJyZWFrcyBiZWZvcmUgYW5hbHl6aW5nIGZ1cnRoZXIuJwogICAgICBvbl9mYWlsdXJlOiBhYm9ydAogICAgICBuZWVkc19hcHByb3ZhbDogZmFsc2UKICAgIC0gZGVzY3JpcHRpb246ICdQaGFzZSAxIOKAlCBUcmFjZSBkYXRhIGZsb3c6IGZvciBlcnJvcnMgZGVlcCBpbiBhIGNhbGwgc3RhY2ssIHRyYWNlIGJhY2t3YXJkIGZyb20gdGhlIGJhZCB2YWx1ZSB0byBpdHMgb3JpZ2luOyBmaXggYXQgdGhlIHNvdXJjZSwgbm90IHdoZXJlIHRoZSBzeW1wdG9tIHN1cmZhY2VzLicKICAgICAgb25fZmFpbHVyZTogYWJvcnQKICAgICAgbmVlZHNfYXBwcm92YWw6IGZhbHNlCiAgICAtIGRlc2NyaXB0aW9uOiAnUGhhc2UgMiDigJQgUGF0dGVybiBhbmFseXNpczogZmluZCBhIHdvcmtpbmcgZXhhbXBsZSBzaW1pbGFyIHRvIHRoZSBicm9rZW4gb25lLCByZWFkIGFueSByZWZlcmVuY2UgaW1wbGVtZW50YXRpb24gY29tcGxldGVseSAobm90IHNraW1tZWQpLCBhbmQgbGlzdCBldmVyeSBkaWZmZXJlbmNlIGJldHdlZW4gd29ya2luZyBhbmQgYnJva2VuLCBob3dldmVyIHNtYWxsLicKICAgICAgb25fZmFpbHVyZTogYWJvcnQKICAgICAgbmVlZHNfYXBwcm92YWw6IGZhbHNlCiAgICAtIGRlc2NyaXB0aW9uOiAnUGhhc2UgMyDigJQgSHlwb3RoZXNpczogc3RhdGUgYSBzaW5nbGUsIHNwZWNpZmljIGh5cG90aGVzaXMgKCcnSSB0aGluayBYIGlzIHRoZSByb290IGNhdXNlIGJlY2F1c2UgWScnKS4gTWFrZSB0aGUgc21hbGxlc3QgcG9zc2libGUgY2hhbmdlIHRvIHRlc3QgaXQsIG9uZSB2YXJpYWJsZSBhdCBhIHRpbWUuIElmIGl0IGRvZXNuJyd0IGNvbmZpcm0sIGZvcm0gYSBuZXcgaHlwb3RoZXNpcyDigJQgZG9uJyd0IHN0YWNrIGEgc2Vjb25kIGZpeCBvbiB0b3AuJwogICAgICBvbl9mYWlsdXJlOiBhYm9ydAogICAgICBuZWVkc19hcHByb3ZhbDogZmFsc2UKICAgIC0gZGVzY3JpcHRpb246ICdQaGFzZSA0IOKAlCBJbXBsZW1lbnRhdGlvbjogd3JpdGUgYSBmYWlsaW5nIHRlc3QgdGhhdCByZXByb2R1Y2VzIHRoZSBidWcgZmlyc3QgKHNlZSB0ZXN0LWRyaXZlbi1kZXZlbG9wbWVudCksIGltcGxlbWVudCBvbmUgZml4IGFkZHJlc3NpbmcgdGhlIHJvb3QgY2F1c2UsIHRoZW4gdmVyaWZ5IHRoZSB0ZXN0IHBhc3NlcyBhbmQgbm8gb3RoZXIgdGVzdHMgYnJva2UuJwogICAgICBvbl9mYWlsdXJlOiBhYm9ydAogICAgICBuZWVkc19hcHByb3ZhbDogZmFsc2UKICAgIC0gZGVzY3JpcHRpb246ICdJZiAzIG9yIG1vcmUgZml4IGF0dGVtcHRzIGhhdmUgZmFpbGVkLCBzdG9wIGF0dGVtcHRpbmcgZnVydGhlciBwb2ludCBmaXhlcy4gRWFjaCBuZXcgZmFpbHVyZSBzdXJmYWNpbmcgaW4gYSBkaWZmZXJlbnQgcGxhY2UgaXMgYSBzaWduYWwgdGhlIGFyY2hpdGVjdHVyZSBpdHNlbGYgaXMgdW5zb3VuZCDigJQgcmFpc2UgdGhpcyB3aXRoIHRoZSBodW1hbiBwYXJ0bmVyIG9yIHJvdXRlciBiZWZvcmUgdHJ5aW5nIGZpeCAjNC4nCiAgICAgIG9uX2ZhaWx1cmU6IGFib3J0CiAgICAgIG5lZWRzX2FwcHJvdmFsOiBmYWxzZQogICAgLSBkZXNjcmlwdGlvbjogT25jZSBmaXhlZCwgaGFuZCBvZmYgdG8gdmVyaWZpY2F0aW9uLWJlZm9yZS1jb21wbGV0aW9uIGJlZm9yZSBjbGFpbWluZyB0aGUgYnVnIHJlc29sdmVkLgogICAgICBvbl9mYWlsdXJlOiBhYm9ydAogICAgICBuZWVkc19hcHByb3ZhbDogZmFsc2UKdGFnczoKLSBjb2RlcgotIGRlYnVnZ2luZwotIHJvb3QtY2F1c2UKLSB3b3JrZmxvdwotIHN1cGVycG93ZXJzLWRlcml2ZWQKdHJpZ2dlcnM6Ci0gdHlwZToga2V5d29yZAogIHBhdHRlcm46IHN5c3RlbWF0aWMtZGVidWdnaW5nCi0gdHlwZToga2V5d29yZAogIHBhdHRlcm46IHJvb3QgY2F1c2UKcHJpb3JpdHk6IG5vcm1hbAp1cGRhdGVkX2F0OiAxOTcwLTAxLTAxVDAwOjAwOjAwWgo=","signatures":[{"keyid":"ed25519-251ef4ef","publicKey":"wsRXm6cOTXxQimH7Dp7r9WLKkcIFhdJleFWG4AKh1NM=","sig":"I5/CPwzxd9cJ2650QsXQeuRNTlWqHZEf8Dq0k8+jZ+7kRES9XI9c7mezqVT5Jh/as8vtr/Sty4FO2TTMOoyEDQ=="}]}'
