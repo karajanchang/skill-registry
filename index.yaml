@@ -1,5 +1,5 @@
 schema_version: 1
-updated_at: 2026-07-05T01:29:03.638137+00:00
+updated_at: 2026-07-05T01:29:59.942948887+00:00
 skills:
   executing-plans:
     latest: 1.0.0
@@ -77,8 +77,6 @@ skills:
     - superpowers-derived
     content_sha256: 5f4894c7f7f858a42cba8242eaaa9ad823c3015b43e36d9b21548d0c34562157
     install_count: 0
-    recommended_roles:
-    - coder
   writing-plans:
     latest: 1.0.0
     description: Write a bite-sized, file-path-exact implementation plan before touching code
