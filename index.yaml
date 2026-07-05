@@ -1,6 +1,20 @@
 schema_version: 1
-updated_at: 2026-07-05T01:31:04.346212036+00:00
+updated_at: 2026-07-05T01:31:32.790160+00:00
 skills:
+  code-review:
+    latest: 1.0.0
+    description: Review a diff against its plan/spec and report severity-ranked findings — the qa role IS the reviewer
+    publisher: human:david
+    category: workflow
+    tags:
+    - qa
+    - code-review
+    - workflow
+    - superpowers-derived
+    content_sha256: 00c1c62dbaaba39e0fa4c048279314d149efa796386362f2f084647e27c61bdb
+    install_count: 0
+    recommended_roles:
+    - qa
   executing-plans:
     latest: 1.0.0
     description: Load a written plan, execute its tasks sequentially with checkpoints, stop when blocked
