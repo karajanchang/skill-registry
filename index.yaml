@@ -1,5 +1,5 @@
 schema_version: 1
-updated_at: 2026-07-05T01:05:48.031609+00:00
+updated_at: 2026-07-05T01:09:04.446953832+00:00
 skills:
   mur-compress:
     latest: 0.1.0
@@ -26,5 +26,3 @@ skills:
     - superpowers-derived
     content_sha256: ef65206a0265f27b4bf6c204af9e05b3eee09412cbe742e99b36427f0fcc5cc4
     install_count: 0
-    recommended_roles:
-    - pm
