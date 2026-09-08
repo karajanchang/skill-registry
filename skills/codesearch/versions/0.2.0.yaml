@@ -1,0 +1,213 @@
+name: codesearch
+version: 0.2.0
+publisher: human:karajanchang
+description: Parallel semantic search across every indexed MUR project. Fans out one `mur project search` per project and merges the results, because `--all` is broken on mixed embedding dims. Carries its own script; ~1.4s over 34 projects, zero LLM calls.
+category: context
+provenance: human
+hosts:
+- all
+content:
+  abstract: |
+    Search every indexed MUR project at once.
+    Install once (see context, step 1 — the manifest carries the script), then:
+    `bash ~/.mur/skills/codesearch/scripts/codesearch.sh "<query>"`
+    Fans out one process per project and merges by score, because
+    `mur project search --all` is broken on mixed embedding dims.
+  context: |
+    # codesearch — cross-project semantic search
+
+    Searches every indexed MUR project in parallel and merges the hits into one
+    score-sorted list. No LLM in the loop: `mur project search` is already hybrid
+    vector+BM25, so the semantic work happens inside the index. ~1.4s over 34
+    projects, zero tokens.
+
+    This skill carries its own script. The registry only publishes this manifest,
+    so step 1 writes the script out; do it once.
+
+    ## 1. Install the script
+
+    Paste this whole block into a shell. The quoted delimiter matters — it stops
+    the shell expanding `$1`, `$HOME` and the awk `$3` field refs inside.
+
+    ```bash
+    mkdir -p ~/.mur/skills/codesearch/scripts
+    cat > ~/.mur/skills/codesearch/scripts/codesearch.sh <<'CODESEARCH_EOF'
+    #!/bin/bash
+    # codesearch — parallel semantic search across all indexed MUR projects.
+    # Usage: codesearch.sh <query> [--limit N] [--jobs N] [--top N] [--filter GLOB]
+    #                      [--min SCORE] [--no-dedupe] [--worktrees] [--json]
+    # Git worktree snapshots (mur--*) are excluded unless --worktrees is given.
+    # Works on macOS bash 3.2 (no mapfile, no associative arrays).
+    set -u
+
+    QUERY=""; LIMIT=3; JOBS=16; FILTER="*"; JSON=0; TOP=40; DEDUPE=1; MIN=0.60; WT=0
+    while [ $# -gt 0 ]; do
+      case "$1" in
+        --limit)  LIMIT="$2"; shift 2 ;;
+        --jobs)   JOBS="$2";  shift 2 ;;
+        --top)    TOP="$2";   shift 2 ;;
+        --filter) FILTER="$2"; shift 2 ;;
+        --min)    MIN="$2";   shift 2 ;;
+        --no-dedupe) DEDUPE=0; shift ;;
+        --worktrees) WT=1; shift ;;
+        --json)   JSON=1; shift ;;
+        -h|--help) sed -n '2,5p' "$0"; exit 0 ;;
+        *) if [ -z "$QUERY" ]; then QUERY="$1"; else QUERY="$QUERY $1"; fi; shift ;;
+      esac
+    done
+    [ -z "$QUERY" ] && { echo "codesearch: no query given" >&2; exit 2; }
+
+    IDX="$HOME/.mur/indexes/codebase"
+    [ -d "$IDX" ] || { echo "codesearch: no index store at $IDX" >&2; exit 1; }
+
+    OUT=$(mktemp -d) || exit 1
+    trap 'rm -rf "$OUT"' EXIT
+    LIST="$OUT/.projects"
+
+    # Canonical project list = one .lance dir per indexed project.
+    ls -d "$IDX"/*.lance 2>/dev/null | sed 's|.*/||; s|\.lance$||' > "$LIST"
+
+    # Git worktree snapshots (mur--<branch>) duplicate the main repo 59x over.
+    # Drop them unless explicitly asked for -- but an explicit --filter wins,
+    # so `--filter 'mur--*'` still works without needing --worktrees.
+    if [ "$WT" -eq 0 ] && [ "$FILTER" = "*" ]; then
+      grep -v '^mur--' "$LIST" > "$LIST.w" 2>/dev/null
+      mv "$LIST.w" "$LIST"
+    fi
+
+    # Optional name filter (glob on project name).
+    if [ "$FILTER" != "*" ]; then
+      # Translate the glob to an anchored ERE without letting awk parse it.
+      RE=$(printf '%s' "$FILTER" | sed -e 's/[.[\]$()|+^{}]/\\&/g' -e 's/\*/.*/g' -e 's/?/./g')
+      grep -E "^${RE}$" "$LIST" > "$LIST.f" 2>/dev/null
+      mv "$LIST.f" "$LIST"
+    fi
+
+    N=$(grep -c . "$LIST" 2>/dev/null | tr -d ' ')
+    [ -z "$N" ] && N=0
+    [ "$N" -eq 0 ] && { echo "codesearch: no indexed project matched" >&2; exit 1; }
+
+    # `mur project search --all` is broken (mixed embedding dims across projects),
+    # so fan out one process per project and merge ourselves.
+    tr '\n' '\0' < "$LIST" | xargs -0 -P "$JOBS" -I{} \
+      sh -c 'mur project search "$1" --project "$2" --limit "$3" --json >"$4/$2.json" 2>/dev/null' \
+          _ "$QUERY" {} "$LIMIT" "$OUT"
+
+    if [ "$JSON" -eq 1 ]; then
+      jq -s 'add // [] | sort_by(-.score)' "$OUT"/*.json 2>/dev/null || echo '[]'
+      exit 0
+    fi
+
+    jq -r '
+      (. // []) | .[]
+      | [ (.score|tostring), .project, .file, ((.line_start // 0)|tostring), (.symbol // "-") ]
+      | @tsv
+    ' "$OUT"/*.json 2>/dev/null \
+      | sort -t"$(printf '\t')" -k1,1gr \
+      | awk -F'\t' -v top="$TOP" -v np="$N" -v dd="$DEDUPE" -v min="$MIN" '
+          BEGIN{ n=0; shown=0; weak=0 }
+          {
+            if ($1 + 0 < min + 0) { weak++; next }
+            n++
+            key = $3 ":" $4 ":" $5           # same file:line:symbol = same hit
+            if (dd == 1) {
+              if (key in seen) { dup[key]++; next }
+              seen[key] = 1
+            }
+            u++
+            if (shown < top) {
+              shown++
+              line[shown] = sprintf("%6.3f  %-20s %s:%s  (%s)", $1, $2, $3, $4, $5)
+              lkey[shown] = key
+            }
+          }
+          END{
+            if (n == 0) {
+              printf "no matches above score %.2f", min
+              if (weak > 0) printf " (%d weaker hits suppressed; --min 0 to see them)", weak
+              print ""
+              exit
+            }
+            for (i = 1; i <= shown; i++) {
+              c = dup[lkey[i]]
+              if (dd == 1 && c > 0) printf "%s  [+%d copies]\n", line[i], c
+              else print line[i]
+            }
+            if (dd == 1) {
+              printf "\n-- %d unique hits (%d raw) over %d projects, showing top %d", u, n, np, shown
+            } else {
+              printf "\n-- %d matches over %d projects, showing top %d", n, np, shown
+            }
+            if (weak > 0) printf ", %d below --min %.2f", weak, min
+            printf "\n"
+          }'
+    CODESEARCH_EOF
+    chmod +x ~/.mur/skills/codesearch/scripts/codesearch.sh
+    ```
+
+    Verify it landed:
+
+    ```bash
+    bash ~/.mur/skills/codesearch/scripts/codesearch.sh --help
+    ```
+
+    ## 2. Run it
+
+    ```bash
+    bash ~/.mur/skills/codesearch/scripts/codesearch.sh "<query>" [options]
+    ```
+
+    Call it with an explicit `bash`. The shebang is unusable under a MUR sandbox
+    because `/usr/bin/env` is blocked.
+
+    ## Options
+
+    - `--limit N`   (3)    hits requested per project
+    - `--jobs N`    (16)   parallel processes
+    - `--top N`     (40)   rows printed after merge
+    - `--min SCORE` (0.60) drop hits below this score
+    - `--filter GLOB` (*)  restrict to project names matching the glob
+    - `--worktrees` (off)  include `mur--*` git worktree snapshots
+    - `--no-dedupe` (off)  keep duplicate `file:line:symbol` rows
+    - `--json`      (off)  emit merged raw JSON instead of a table
+
+    ## Why it fans out instead of using --all
+
+    `mur project search --all` fails outright:
+
+    ```
+    Error: Invalid input, No vector column found to match with the query vector dimension: 1024
+    ```
+
+    Projects were embedded with different model dimensions and cannot share one
+    vector query. One process per project sidesteps it.
+
+    ## Worktrees
+
+    If you keep git worktrees, each one gets its own `.lance` index and every real
+    hit shows up as `[+N copies]`. Names matching `mur--*` are excluded by default;
+    `--worktrees` includes them, and an explicit `--filter 'mur--*'` also overrides
+    the exclusion so you can search a branch snapshot deliberately.
+
+    ## Notes
+
+    - Project list source is `~/.mur/indexes/codebase/*.lance`. Do NOT use
+      `~/.mur/projects/*.json` — it holds stale entries including /tmp paths.
+    - Result JSON fields are `file`, `line_start`, `symbol` — not `path`/`line`.
+    - Written for macOS bash 3.2: no `mapfile`, no associative arrays.
+    - `--min 0.60` is calibrated by observation, not derived. Re-tune if it drops
+      hits you wanted.
+    - Requires `jq`.
+tags:
+- mur
+- search
+- code
+- parallel
+- semantic
+triggers:
+- type: keyword
+  pattern: (codesearch|search all projects|cross-project search|跨專案搜尋|搜尋所有專案)
+- type: manual
+priority: normal
+updated_at: 1970-01-01T00:00:00Z
+publisher_signature: '{"payloadType":"application/vnd.mur.skill+yaml","payload":"bmFtZTogY29kZXNlYXJjaAp2ZXJzaW9uOiAwLjIuMApwdWJsaXNoZXI6IGh1bWFuOmthcmFqYW5jaGFuZwpkZXNjcmlwdGlvbjogUGFyYWxsZWwgc2VtYW50aWMgc2VhcmNoIGFjcm9zcyBldmVyeSBpbmRleGVkIE1VUiBwcm9qZWN0LiBGYW5zIG91dCBvbmUgYG11ciBwcm9qZWN0IHNlYXJjaGAgcGVyIHByb2plY3QgYW5kIG1lcmdlcyB0aGUgcmVzdWx0cywgYmVjYXVzZSBgLS1hbGxgIGlzIGJyb2tlbiBvbiBtaXhlZCBlbWJlZGRpbmcgZGltcy4gQ2FycmllcyBpdHMgb3duIHNjcmlwdDsgfjEuNHMgb3ZlciAzNCBwcm9qZWN0cywgemVybyBMTE0gY2FsbHMuCmNhdGVnb3J5OiBjb250ZXh0CnByb3ZlbmFuY2U6IGh1bWFuCmhvc3RzOgotIGFsbApjb250ZW50OgogIGFic3RyYWN0OiB8CiAgICBTZWFyY2ggZXZlcnkgaW5kZXhlZCBNVVIgcHJvamVjdCBhdCBvbmNlLgogICAgSW5zdGFsbCBvbmNlIChzZWUgY29udGV4dCwgc3RlcCAxIOKAlCB0aGUgbWFuaWZlc3QgY2FycmllcyB0aGUgc2NyaXB0KSwgdGhlbjoKICAgIGBiYXNoIH4vLm11ci9za2lsbHMvY29kZXNlYXJjaC9zY3JpcHRzL2NvZGVzZWFyY2guc2ggIjxxdWVyeT4iYAogICAgRmFucyBvdXQgb25lIHByb2Nlc3MgcGVyIHByb2plY3QgYW5kIG1lcmdlcyBieSBzY29yZSwgYmVjYXVzZQogICAgYG11ciBwcm9qZWN0IHNlYXJjaCAtLWFsbGAgaXMgYnJva2VuIG9uIG1peGVkIGVtYmVkZGluZyBkaW1zLgogIGNvbnRleHQ6IHwKICAgICMgY29kZXNlYXJjaCDigJQgY3Jvc3MtcHJvamVjdCBzZW1hbnRpYyBzZWFyY2gKCiAgICBTZWFyY2hlcyBldmVyeSBpbmRleGVkIE1VUiBwcm9qZWN0IGluIHBhcmFsbGVsIGFuZCBtZXJnZXMgdGhlIGhpdHMgaW50byBvbmUKICAgIHNjb3JlLXNvcnRlZCBsaXN0LiBObyBMTE0gaW4gdGhlIGxvb3A6IGBtdXIgcHJvamVjdCBzZWFyY2hgIGlzIGFscmVhZHkgaHlicmlkCiAgICB2ZWN0b3IrQk0yNSwgc28gdGhlIHNlbWFudGljIHdvcmsgaGFwcGVucyBpbnNpZGUgdGhlIGluZGV4LiB+MS40cyBvdmVyIDM0CiAgICBwcm9qZWN0cywgemVybyB0b2tlbnMuCgogICAgVGhpcyBza2lsbCBjYXJyaWVzIGl0cyBvd24gc2NyaXB0LiBUaGUgcmVnaXN0cnkgb25seSBwdWJsaXNoZXMgdGhpcyBtYW5pZmVzdCwKICAgIHNvIHN0ZXAgMSB3cml0ZXMgdGhlIHNjcmlwdCBvdXQ7IGRvIGl0IG9uY2UuCgogICAgIyMgMS4gSW5zdGFsbCB0aGUgc2NyaXB0CgogICAgUGFzdGUgdGhpcyB3aG9sZSBibG9jayBpbnRvIGEgc2hlbGwuIFRoZSBxdW90ZWQgZGVsaW1pdGVyIG1hdHRlcnMg4oCUIGl0IHN0b3BzCiAgICB0aGUgc2hlbGwgZXhwYW5kaW5nIGAkMWAsIGAkSE9NRWAgYW5kIHRoZSBhd2sgYCQzYCBmaWVsZCByZWZzIGluc2lkZS4KCiAgICBgYGBiYXNoCiAgICBta2RpciAtcCB+Ly5tdXIvc2tpbGxzL2NvZGVzZWFyY2gvc2NyaXB0cwogICAgY2F0ID4gfi8ubXVyL3NraWxscy9jb2Rlc2VhcmNoL3NjcmlwdHMvY29kZXNlYXJjaC5zaCA8PCdDT0RFU0VBUkNIX0VPRicKICAgICMhL2Jpbi9iYXNoCiAgICAjIGNvZGVzZWFyY2gg4oCUIHBhcmFsbGVsIHNlbWFudGljIHNlYXJjaCBhY3Jvc3MgYWxsIGluZGV4ZWQgTVVSIHByb2plY3RzLgogICAgIyBVc2FnZTogY29kZXNlYXJjaC5zaCA8cXVlcnk+IFstLWxpbWl0IE5dIFstLWpvYnMgTl0gWy0tdG9wIE5dIFstLWZpbHRlciBHTE9CXQogICAgIyAgICAgICAgICAgICAgICAgICAgICBbLS1taW4gU0NPUkVdIFstLW5vLWRlZHVwZV0gWy0td29ya3RyZWVzXSBbLS1qc29uXQogICAgIyBHaXQgd29ya3RyZWUgc25hcHNob3RzIChtdXItLSopIGFyZSBleGNsdWRlZCB1bmxlc3MgLS13b3JrdHJlZXMgaXMgZ2l2ZW4uCiAgICAjIFdvcmtzIG9uIG1hY09TIGJhc2ggMy4yIChubyBtYXBmaWxlLCBubyBhc3NvY2lhdGl2ZSBhcnJheXMpLgogICAgc2V0IC11CgogICAgUVVFUlk9IiI7IExJTUlUPTM7IEpPQlM9MTY7IEZJTFRFUj0iKiI7IEpTT049MDsgVE9QPTQwOyBERURVUEU9MTsgTUlOPTAuNjA7IFdUPTAKICAgIHdoaWxlIFsgJCMgLWd0IDAgXTsgZG8KICAgICAgY2FzZSAiJDEiIGluCiAgICAgICAgLS1saW1pdCkgIExJTUlUPSIkMiI7IHNoaWZ0IDIgOzsKICAgICAgICAtLWpvYnMpICAgSk9CUz0iJDIiOyAgc2hpZnQgMiA7OwogICAgICAgIC0tdG9wKSAgICBUT1A9IiQyIjsgICBzaGlmdCAyIDs7CiAgICAgICAgLS1maWx0ZXIpIEZJTFRFUj0iJDIiOyBzaGlmdCAyIDs7CiAgICAgICAgLS1taW4pICAgIE1JTj0iJDIiOyAgIHNoaWZ0IDIgOzsKICAgICAgICAtLW5vLWRlZHVwZSkgREVEVVBFPTA7IHNoaWZ0IDs7CiAgICAgICAgLS13b3JrdHJlZXMpIFdUPTE7IHNoaWZ0IDs7CiAgICAgICAgLS1qc29uKSAgIEpTT049MTsgc2hpZnQgOzsKICAgICAgICAtaHwtLWhlbHApIHNlZCAtbiAnMiw1cCcgIiQwIjsgZXhpdCAwIDs7CiAgICAgICAgKikgaWYgWyAteiAiJFFVRVJZIiBdOyB0aGVuIFFVRVJZPSIkMSI7IGVsc2UgUVVFUlk9IiRRVUVSWSAkMSI7IGZpOyBzaGlmdCA7OwogICAgICBlc2FjCiAgICBkb25lCiAgICBbIC16ICIkUVVFUlkiIF0gJiYgeyBlY2hvICJjb2Rlc2VhcmNoOiBubyBxdWVyeSBnaXZlbiIgPiYyOyBleGl0IDI7IH0KCiAgICBJRFg9IiRIT01FLy5tdXIvaW5kZXhlcy9jb2RlYmFzZSIKICAgIFsgLWQgIiRJRFgiIF0gfHwgeyBlY2hvICJjb2Rlc2VhcmNoOiBubyBpbmRleCBzdG9yZSBhdCAkSURYIiA+JjI7IGV4aXQgMTsgfQoKICAgIE9VVD0kKG1rdGVtcCAtZCkgfHwgZXhpdCAxCiAgICB0cmFwICdybSAtcmYgIiRPVVQiJyBFWElUCiAgICBMSVNUPSIkT1VULy5wcm9qZWN0cyIKCiAgICAjIENhbm9uaWNhbCBwcm9qZWN0IGxpc3QgPSBvbmUgLmxhbmNlIGRpciBwZXIgaW5kZXhlZCBwcm9qZWN0LgogICAgbHMgLWQgIiRJRFgiLyoubGFuY2UgMj4vZGV2L251bGwgfCBzZWQgJ3N8LiovfHw7IHN8XC5sYW5jZSR8fCcgPiAiJExJU1QiCgogICAgIyBHaXQgd29ya3RyZWUgc25hcHNob3RzIChtdXItLTxicmFuY2g+KSBkdXBsaWNhdGUgdGhlIG1haW4gcmVwbyA1OXggb3Zlci4KICAgICMgRHJvcCB0aGVtIHVubGVzcyBleHBsaWNpdGx5IGFza2VkIGZvciAtLSBidXQgYW4gZXhwbGljaXQgLS1maWx0ZXIgd2lucywKICAgICMgc28gYC0tZmlsdGVyICdtdXItLSonYCBzdGlsbCB3b3JrcyB3aXRob3V0IG5lZWRpbmcgLS13b3JrdHJlZXMuCiAgICBpZiBbICIkV1QiIC1lcSAwIF0gJiYgWyAiJEZJTFRFUiIgPSAiKiIgXTsgdGhlbgogICAgICBncmVwIC12ICdebXVyLS0nICIkTElTVCIgPiAiJExJU1QudyIgMj4vZGV2L251bGwKICAgICAgbXYgIiRMSVNULnciICIkTElTVCIKICAgIGZpCgogICAgIyBPcHRpb25hbCBuYW1lIGZpbHRlciAoZ2xvYiBvbiBwcm9qZWN0IG5hbWUpLgogICAgaWYgWyAiJEZJTFRFUiIgIT0gIioiIF07IHRoZW4KICAgICAgIyBUcmFuc2xhdGUgdGhlIGdsb2IgdG8gYW4gYW5jaG9yZWQgRVJFIHdpdGhvdXQgbGV0dGluZyBhd2sgcGFyc2UgaXQuCiAgICAgIFJFPSQocHJpbnRmICclcycgIiRGSUxURVIiIHwgc2VkIC1lICdzL1suW1xdJCgpfCtee31dL1xcJi9nJyAtZSAncy9cKi8uKi9nJyAtZSAncy8/Ly4vZycpCiAgICAgIGdyZXAgLUUgIl4ke1JFfSQiICIkTElTVCIgPiAiJExJU1QuZiIgMj4vZGV2L251bGwKICAgICAgbXYgIiRMSVNULmYiICIkTElTVCIKICAgIGZpCgogICAgTj0kKGdyZXAgLWMgLiAiJExJU1QiIDI+L2Rldi9udWxsIHwgdHIgLWQgJyAnKQogICAgWyAteiAiJE4iIF0gJiYgTj0wCiAgICBbICIkTiIgLWVxIDAgXSAmJiB7IGVjaG8gImNvZGVzZWFyY2g6IG5vIGluZGV4ZWQgcHJvamVjdCBtYXRjaGVkIiA+JjI7IGV4aXQgMTsgfQoKICAgICMgYG11ciBwcm9qZWN0IHNlYXJjaCAtLWFsbGAgaXMgYnJva2VuIChtaXhlZCBlbWJlZGRpbmcgZGltcyBhY3Jvc3MgcHJvamVjdHMpLAogICAgIyBzbyBmYW4gb3V0IG9uZSBwcm9jZXNzIHBlciBwcm9qZWN0IGFuZCBtZXJnZSBvdXJzZWx2ZXMuCiAgICB0ciAnXG4nICdcMCcgPCAiJExJU1QiIHwgeGFyZ3MgLTAgLVAgIiRKT0JTIiAtSXt9IFwKICAgICAgc2ggLWMgJ211ciBwcm9qZWN0IHNlYXJjaCAiJDEiIC0tcHJvamVjdCAiJDIiIC0tbGltaXQgIiQzIiAtLWpzb24gPiIkNC8kMi5qc29uIiAyPi9kZXYvbnVsbCcgXAogICAgICAgICAgXyAiJFFVRVJZIiB7fSAiJExJTUlUIiAiJE9VVCIKCiAgICBpZiBbICIkSlNPTiIgLWVxIDEgXTsgdGhlbgogICAgICBqcSAtcyAnYWRkIC8vIFtdIHwgc29ydF9ieSgtLnNjb3JlKScgIiRPVVQiLyouanNvbiAyPi9kZXYvbnVsbCB8fCBlY2hvICdbXScKICAgICAgZXhpdCAwCiAgICBmaQoKICAgIGpxIC1yICcKICAgICAgKC4gLy8gW10pIHwgLltdCiAgICAgIHwgWyAoLnNjb3JlfHRvc3RyaW5nKSwgLnByb2plY3QsIC5maWxlLCAoKC5saW5lX3N0YXJ0IC8vIDApfHRvc3RyaW5nKSwgKC5zeW1ib2wgLy8gIi0iKSBdCiAgICAgIHwgQHRzdgogICAgJyAiJE9VVCIvKi5qc29uIDI+L2Rldi9udWxsIFwKICAgICAgfCBzb3J0IC10IiQocHJpbnRmICdcdCcpIiAtazEsMWdyIFwKICAgICAgfCBhd2sgLUYnXHQnIC12IHRvcD0iJFRPUCIgLXYgbnA9IiROIiAtdiBkZD0iJERFRFVQRSIgLXYgbWluPSIkTUlOIiAnCiAgICAgICAgICBCRUdJTnsgbj0wOyBzaG93bj0wOyB3ZWFrPTAgfQogICAgICAgICAgewogICAgICAgICAgICBpZiAoJDEgKyAwIDwgbWluICsgMCkgeyB3ZWFrKys7IG5leHQgfQogICAgICAgICAgICBuKysKICAgICAgICAgICAga2V5ID0gJDMgIjoiICQ0ICI6IiAkNSAgICAgICAgICAgIyBzYW1lIGZpbGU6bGluZTpzeW1ib2wgPSBzYW1lIGhpdAogICAgICAgICAgICBpZiAoZGQgPT0gMSkgewogICAgICAgICAgICAgIGlmIChrZXkgaW4gc2VlbikgeyBkdXBba2V5XSsrOyBuZXh0IH0KICAgICAgICAgICAgICBzZWVuW2tleV0gPSAxCiAgICAgICAgICAgIH0KICAgICAgICAgICAgdSsrCiAgICAgICAgICAgIGlmIChzaG93biA8IHRvcCkgewogICAgICAgICAgICAgIHNob3duKysKICAgICAgICAgICAgICBsaW5lW3Nob3duXSA9IHNwcmludGYoIiU2LjNmICAlLTIwcyAlczolcyAgKCVzKSIsICQxLCAkMiwgJDMsICQ0LCAkNSkKICAgICAgICAgICAgICBsa2V5W3Nob3duXSA9IGtleQogICAgICAgICAgICB9CiAgICAgICAgICB9CiAgICAgICAgICBFTkR7CiAgICAgICAgICAgIGlmIChuID09IDApIHsKICAgICAgICAgICAgICBwcmludGYgIm5vIG1hdGNoZXMgYWJvdmUgc2NvcmUgJS4yZiIsIG1pbgogICAgICAgICAgICAgIGlmICh3ZWFrID4gMCkgcHJpbnRmICIgKCVkIHdlYWtlciBoaXRzIHN1cHByZXNzZWQ7IC0tbWluIDAgdG8gc2VlIHRoZW0pIiwgd2VhawogICAgICAgICAgICAgIHByaW50ICIiCiAgICAgICAgICAgICAgZXhpdAogICAgICAgICAgICB9CiAgICAgICAgICAgIGZvciAoaSA9IDE7IGkgPD0gc2hvd247IGkrKykgewogICAgICAgICAgICAgIGMgPSBkdXBbbGtleVtpXV0KICAgICAgICAgICAgICBpZiAoZGQgPT0gMSAmJiBjID4gMCkgcHJpbnRmICIlcyAgWyslZCBjb3BpZXNdXG4iLCBsaW5lW2ldLCBjCiAgICAgICAgICAgICAgZWxzZSBwcmludCBsaW5lW2ldCiAgICAgICAgICAgIH0KICAgICAgICAgICAgaWYgKGRkID09IDEpIHsKICAgICAgICAgICAgICBwcmludGYgIlxuLS0gJWQgdW5pcXVlIGhpdHMgKCVkIHJhdykgb3ZlciAlZCBwcm9qZWN0cywgc2hvd2luZyB0b3AgJWQiLCB1LCBuLCBucCwgc2hvd24KICAgICAgICAgICAgfSBlbHNlIHsKICAgICAgICAgICAgICBwcmludGYgIlxuLS0gJWQgbWF0Y2hlcyBvdmVyICVkIHByb2plY3RzLCBzaG93aW5nIHRvcCAlZCIsIG4sIG5wLCBzaG93bgogICAgICAgICAgICB9CiAgICAgICAgICAgIGlmICh3ZWFrID4gMCkgcHJpbnRmICIsICVkIGJlbG93IC0tbWluICUuMmYiLCB3ZWFrLCBtaW4KICAgICAgICAgICAgcHJpbnRmICJcbiIKICAgICAgICAgIH0nCiAgICBDT0RFU0VBUkNIX0VPRgogICAgY2htb2QgK3ggfi8ubXVyL3NraWxscy9jb2Rlc2VhcmNoL3NjcmlwdHMvY29kZXNlYXJjaC5zaAogICAgYGBgCgogICAgVmVyaWZ5IGl0IGxhbmRlZDoKCiAgICBgYGBiYXNoCiAgICBiYXNoIH4vLm11ci9za2lsbHMvY29kZXNlYXJjaC9zY3JpcHRzL2NvZGVzZWFyY2guc2ggLS1oZWxwCiAgICBgYGAKCiAgICAjIyAyLiBSdW4gaXQKCiAgICBgYGBiYXNoCiAgICBiYXNoIH4vLm11ci9za2lsbHMvY29kZXNlYXJjaC9zY3JpcHRzL2NvZGVzZWFyY2guc2ggIjxxdWVyeT4iIFtvcHRpb25zXQogICAgYGBgCgogICAgQ2FsbCBpdCB3aXRoIGFuIGV4cGxpY2l0IGBiYXNoYC4gVGhlIHNoZWJhbmcgaXMgdW51c2FibGUgdW5kZXIgYSBNVVIgc2FuZGJveAogICAgYmVjYXVzZSBgL3Vzci9iaW4vZW52YCBpcyBibG9ja2VkLgoKICAgICMjIE9wdGlvbnMKCiAgICAtIGAtLWxpbWl0IE5gICAgKDMpICAgIGhpdHMgcmVxdWVzdGVkIHBlciBwcm9qZWN0CiAgICAtIGAtLWpvYnMgTmAgICAgKDE2KSAgIHBhcmFsbGVsIHByb2Nlc3NlcwogICAgLSBgLS10b3AgTmAgICAgICg0MCkgICByb3dzIHByaW50ZWQgYWZ0ZXIgbWVyZ2UKICAgIC0gYC0tbWluIFNDT1JFYCAoMC42MCkgZHJvcCBoaXRzIGJlbG93IHRoaXMgc2NvcmUKICAgIC0gYC0tZmlsdGVyIEdMT0JgICgqKSAgcmVzdHJpY3QgdG8gcHJvamVjdCBuYW1lcyBtYXRjaGluZyB0aGUgZ2xvYgogICAgLSBgLS13b3JrdHJlZXNgIChvZmYpICBpbmNsdWRlIGBtdXItLSpgIGdpdCB3b3JrdHJlZSBzbmFwc2hvdHMKICAgIC0gYC0tbm8tZGVkdXBlYCAob2ZmKSAga2VlcCBkdXBsaWNhdGUgYGZpbGU6bGluZTpzeW1ib2xgIHJvd3MKICAgIC0gYC0tanNvbmAgICAgICAob2ZmKSAgZW1pdCBtZXJnZWQgcmF3IEpTT04gaW5zdGVhZCBvZiBhIHRhYmxlCgogICAgIyMgV2h5IGl0IGZhbnMgb3V0IGluc3RlYWQgb2YgdXNpbmcgLS1hbGwKCiAgICBgbXVyIHByb2plY3Qgc2VhcmNoIC0tYWxsYCBmYWlscyBvdXRyaWdodDoKCiAgICBgYGAKICAgIEVycm9yOiBJbnZhbGlkIGlucHV0LCBObyB2ZWN0b3IgY29sdW1uIGZvdW5kIHRvIG1hdGNoIHdpdGggdGhlIHF1ZXJ5IHZlY3RvciBkaW1lbnNpb246IDEwMjQKICAgIGBgYAoKICAgIFByb2plY3RzIHdlcmUgZW1iZWRkZWQgd2l0aCBkaWZmZXJlbnQgbW9kZWwgZGltZW5zaW9ucyBhbmQgY2Fubm90IHNoYXJlIG9uZQogICAgdmVjdG9yIHF1ZXJ5LiBPbmUgcHJvY2VzcyBwZXIgcHJvamVjdCBzaWRlc3RlcHMgaXQuCgogICAgIyMgV29ya3RyZWVzCgogICAgSWYgeW91IGtlZXAgZ2l0IHdvcmt0cmVlcywgZWFjaCBvbmUgZ2V0cyBpdHMgb3duIGAubGFuY2VgIGluZGV4IGFuZCBldmVyeSByZWFsCiAgICBoaXQgc2hvd3MgdXAgYXMgYFsrTiBjb3BpZXNdYC4gTmFtZXMgbWF0Y2hpbmcgYG11ci0tKmAgYXJlIGV4Y2x1ZGVkIGJ5IGRlZmF1bHQ7CiAgICBgLS13b3JrdHJlZXNgIGluY2x1ZGVzIHRoZW0sIGFuZCBhbiBleHBsaWNpdCBgLS1maWx0ZXIgJ211ci0tKidgIGFsc28gb3ZlcnJpZGVzCiAgICB0aGUgZXhjbHVzaW9uIHNvIHlvdSBjYW4gc2VhcmNoIGEgYnJhbmNoIHNuYXBzaG90IGRlbGliZXJhdGVseS4KCiAgICAjIyBOb3RlcwoKICAgIC0gUHJvamVjdCBsaXN0IHNvdXJjZSBpcyBgfi8ubXVyL2luZGV4ZXMvY29kZWJhc2UvKi5sYW5jZWAuIERvIE5PVCB1c2UKICAgICAgYH4vLm11ci9wcm9qZWN0cy8qLmpzb25gIOKAlCBpdCBob2xkcyBzdGFsZSBlbnRyaWVzIGluY2x1ZGluZyAvdG1wIHBhdGhzLgogICAgLSBSZXN1bHQgSlNPTiBmaWVsZHMgYXJlIGBmaWxlYCwgYGxpbmVfc3RhcnRgLCBgc3ltYm9sYCDigJQgbm90IGBwYXRoYC9gbGluZWAuCiAgICAtIFdyaXR0ZW4gZm9yIG1hY09TIGJhc2ggMy4yOiBubyBgbWFwZmlsZWAsIG5vIGFzc29jaWF0aXZlIGFycmF5cy4KICAgIC0gYC0tbWluIDAuNjBgIGlzIGNhbGlicmF0ZWQgYnkgb2JzZXJ2YXRpb24sIG5vdCBkZXJpdmVkLiBSZS10dW5lIGlmIGl0IGRyb3BzCiAgICAgIGhpdHMgeW91IHdhbnRlZC4KICAgIC0gUmVxdWlyZXMgYGpxYC4KdGFnczoKLSBtdXIKLSBzZWFyY2gKLSBjb2RlCi0gcGFyYWxsZWwKLSBzZW1hbnRpYwp0cmlnZ2VyczoKLSB0eXBlOiBrZXl3b3JkCiAgcGF0dGVybjogKGNvZGVzZWFyY2h8c2VhcmNoIGFsbCBwcm9qZWN0c3xjcm9zcy1wcm9qZWN0IHNlYXJjaHzot6jlsIjmoYjmkJzlsIt85pCc5bCL5omA5pyJ5bCI5qGIKQotIHR5cGU6IG1hbnVhbApwcmlvcml0eTogbm9ybWFsCnVwZGF0ZWRfYXQ6IDE5NzAtMDEtMDFUMDA6MDA6MDBaCg==","signatures":[{"keyid":"ed25519-d0511901","publicKey":"WUL69d3kew1ShFDk9ipdCDbVmgmtvEaae8fsCzEFC0I=","sig":"vXnb02DcSKkZgx9JljxHvdlvjH125CV++0T2VRenmx2Olf1N5x7B4boQdtumoqp7+qfjZXa8UedoxQD6lXe5DQ=="}]}'
